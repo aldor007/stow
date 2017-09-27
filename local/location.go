@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/graymeta/stow"
+	"github.com/aldor007/stow"
 	"github.com/pkg/errors"
 )
 

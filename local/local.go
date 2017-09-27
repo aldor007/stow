@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/graymeta/stow"
+	"github.com/aldor007/stow"
 )
 
 // ConfigKeys are the supported configuration items for
