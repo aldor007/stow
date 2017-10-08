@@ -177,8 +177,12 @@ func (c *container) getItem(id string) (*item, error) {
 		return nil, errors.Wrap(err, "getItem, getting the object")
 	}
 	defer res.Body.Close()
+	var etag string
 
-	etag := cleanEtag(*res.ETag) // etag string value contains quotations. Remove them.
+	if res.ETag != nil {
+		etag = cleanEtag(*res.ETag) // etag string value contains quotations. Remove them.
+	}
+
 	md, err := parseMetadata(res.Metadata)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to retrieve Item information, parsing metadata")
