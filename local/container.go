@@ -102,11 +102,10 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 	} else if len(files) <= count {
 		cursor = "" // end
 	}
+
+	files = files[1:]
 	var items []stow.Item
 	for _, f := range files {
-		if f.IsDir() {
-			continue
-		}
 		path, err := filepath.Abs(filepath.Join(c.path, f.Name()))
 		if err != nil {
 			return nil, "", err
@@ -148,12 +147,13 @@ func flatdirs(path string) ([]os.FileInfo, error) {
 		if err != nil {
 			return err
 		}
-		if info.IsDir() {
-			return nil
-		}
 		flatname, err := filepath.Rel(path, p)
 		if err != nil {
 			return err
+		}
+
+		if info.IsDir() {
+			flatname = flatname + "/"
 		}
 		list = append(list, fileinfo{
 			FileInfo: info,
