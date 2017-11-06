@@ -69,6 +69,11 @@ func (i *item) ETag() (string, error) {
 	if err != nil {
 		return "", nil
 	}
+
+	if etag, ok := i.properties["Etag"]; ok {
+		return etag, nil
+	}
+
 	return i.info.ModTime().String(), nil
 }
 
@@ -125,7 +130,16 @@ func (i *item) Open() (io.ReadCloser, error) {
 func (i *item) LastMod() (time.Time, error) {
 	err := i.ensureInfo()
 	if err != nil {
-		return time.Time{}, nil
+		return time.Time{}, err
+	}
+
+	if lastMod, ok := i.properties["Last-Modified"]; ok {
+		lastModTime, err := time.Parse(time.RFC1123, lastMod)
+		if err != nil {
+			return time.Time{}, err
+		}
+
+		return lastModTime, nil
 	}
 
 	return i.info.ModTime(), nil
@@ -133,6 +147,13 @@ func (i *item) LastMod() (time.Time, error) {
 
 func (i *item) ensureInfo() error {
 	i.infoOnce.Do(func() {
+		i.info, i.infoErr = os.Lstat(i.path) // retrieve item file info
+
+		i.infoErr = i.setMetadata(i.info) // merge file and metadata maps
+		if i.infoErr != nil {
+			return
+		}
+
 		r, err := i.Open()
 		if err == nil {
 			defer r.Close()
@@ -141,12 +162,6 @@ func (i *item) ensureInfo() error {
 			return
 		}
 
-		i.info, i.infoErr = os.Lstat(i.path) // retrieve item file info
-
-		i.infoErr = i.setMetadata(i.info) // merge file and metadata maps
-		if i.infoErr != nil {
-			return
-		}
 	})
 	return i.infoErr
 }

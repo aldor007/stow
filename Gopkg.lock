@@ -16,8 +16,8 @@
 [[projects]]
   name = "github.com/Azure/go-autorest"
   packages = ["autorest","autorest/adal","autorest/azure","autorest/date"]
-  revision = "77a52603f06947221c672f10275abc9bf2c7d557"
-  version = "v8.3.0"
+  revision = "8efdaa3a898515764e6039c03e8d953c10519915"
+  version = "v9.3.1"
 
 [[projects]]
   name = "github.com/aldor007/stow"
@@ -28,8 +28,8 @@
 [[projects]]
   name = "github.com/aws/aws-sdk-go"
   packages = ["aws","aws/awserr","aws/awsutil","aws/client","aws/client/metadata","aws/corehandlers","aws/credentials","aws/credentials/ec2rolecreds","aws/credentials/endpointcreds","aws/credentials/stscreds","aws/defaults","aws/ec2metadata","aws/endpoints","aws/request","aws/session","aws/signer/v4","internal/shareddefaults","private/protocol","private/protocol/query","private/protocol/query/queryutil","private/protocol/rest","private/protocol/restxml","private/protocol/xml/xmlutil","service/s3","service/sts"]
-  revision = "1850f427c33c2558a2118dc55c1cf95a633d7432"
-  version = "v1.10.27"
+  revision = "d46843b92a3a8e377d7fe24b4d70fca37f923d00"
+  version = "v1.12.22"
 
 [[projects]]
   branch = "master"
@@ -40,14 +40,14 @@
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
-  revision = "d2709f9f1f31ebcda9651b03077758c1f3a0018c"
-  version = "v3.0.0"
+  revision = "dbeaa9332f19a944acb5736b4456cfcc02140e29"
+  version = "v3.1.0"
 
 [[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
-  revision = "20b96f641a5ea98f2f8619ff4f3e061cff4833bd"
-  version = "v1.28.2"
+  revision = "3321baafb1bb36f5288e5fff1c7cc98abd4c173a"
+  version = "v1.29.2"
 
 [[projects]]
   branch = "master"
@@ -64,14 +64,13 @@
 [[projects]]
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
-  revision = "3433f3ea46d9f8019119e7dd41274e112a2359a9"
-  version = "0.2.2"
+  revision = "0b12d6b5"
 
 [[projects]]
   branch = "master"
   name = "github.com/ncw/swift"
   packages = ["."]
-  revision = "af59a5adcdb59d343cc10d09804a9cbfbc32d385"
+  revision = "c95c6e5c2d1a3d37fc44c8c6dc9e231c7500667d"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -101,13 +100,13 @@
   branch = "master"
   name = "golang.org/x/oauth2"
   packages = [".","google","internal","jws","jwt"]
-  revision = "9a379c6b3e95a790ffc43293c2a78dee0d7b6e20"
+  revision = "9ff8ebcc8e241d46f52ecc5bff0e5a2f2dbef402"
 
 [[projects]]
   branch = "master"
   name = "google.golang.org/api"
   packages = ["gensupport","googleapi","googleapi/internal/uritemplates","storage/v1"]
-  revision = "98825bb0065da4054e5da6db34f5fc598e50bc24"
+  revision = "9fdb53e0c633e09f7df19c7745ee0e39ce3f5e6a"
 
 [[projects]]
   name = "google.golang.org/appengine"
