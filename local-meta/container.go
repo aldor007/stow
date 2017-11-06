@@ -1,4 +1,4 @@
-package local
+package local_meta
 
 import (
 	"errors"
@@ -7,14 +7,17 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"bytes"
+	"encoding/binary"
+	"io/ioutil"
 
 	"github.com/aldor007/stow"
+	"github.com/vmihailenco/msgpack"
 )
 
 type container struct {
 	name string
 	path string
-	allowMetadata bool
 }
 
 func (c *container) ID() string {
@@ -50,20 +53,28 @@ func (c *container) RemoveItem(id string) error {
 }
 
 func (c *container) Put(name string, r io.Reader, size int64, metadata map[string]interface{}) (stow.Item, error) {
-	if c.allowMetadata == false && len(metadata) > 0 {
-		return nil, stow.NotSupported("metadata")
-	}
-
 	path := filepath.Join(c.path, name)
 	item := &item{
 		path: path,
 		name: name,
 	}
+
 	err := os.MkdirAll(filepath.Dir(path), 0777)
 	if err != nil {
 		return nil, err
 	}
 	f, err := os.Create(path)
+	if err != nil {
+		return nil, err
+	}
+
+	md := parseMetadata(metadata)
+	metaReader, err := prepareMetaReader(md)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = io.Copy(f, metaReader)
 	if err != nil {
 		return nil, err
 	}
@@ -175,4 +186,37 @@ type fileinfo struct {
 
 func (f fileinfo) Name() string {
 	return f.name
+}
+
+func parseMetadata(meta map[string]interface{}) map[string]string {
+	md := make(map[string]string, len(meta))
+	for k, v := range meta {
+		md[k] = v.(string)
+	}
+
+	//lastMod, _ := i.LastMod()
+	//md["Last-Modified"] = lastMod.String()
+	//md["ETag"] = i.ETag()
+
+	return md
+}
+
+func prepareMetaReader(meta map[string]string)  (io.ReadCloser, error) {
+	bufMsg, err := msgpack.Marshal(&meta)
+	if err != nil {
+		return nil, err
+	}
+
+	bs := make([]byte, 4)
+	binary.LittleEndian.PutUint32(bs, uint32(len(bufMsg)))
+	metaHeader := append(metaPointer[:], bs...)
+	lenMetaHeader := len(metaHeader)
+
+	var bufMeta []byte
+	bufMeta = make([]byte, lenMetaHeader + len(bufMsg))
+	copy(bufMeta[:], metaHeader)
+	copy(bufMeta[lenMetaHeader:], bufMsg)
+
+	metadata := ioutil.NopCloser(bytes.NewReader(bufMeta[:]))
+	return metadata, nil
 }

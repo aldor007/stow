@@ -4,8 +4,8 @@
 [[projects]]
   name = "cloud.google.com/go"
   packages = ["compute/metadata"]
-  revision = "44bcd0b2078ba5e7fedbeb36808d1ed893534750"
-  version = "v0.11.0"
+  revision = "2d3a6656c17a60b0815b7e06ab0be04eacb6e613"
+  version = "v0.16.0"
 
 [[projects]]
   name = "github.com/Azure/azure-sdk-for-go"
@@ -18,6 +18,12 @@
   packages = ["autorest","autorest/adal","autorest/azure","autorest/date"]
   revision = "77a52603f06947221c672f10275abc9bf2c7d557"
   version = "v8.3.0"
+
+[[projects]]
+  name = "github.com/aldor007/stow"
+  packages = [".","local","test"]
+  revision = "40ddb0743e48a0b979b7dc57ff214a686b0e1ef2"
+  version = "v0.1.0"
 
 [[projects]]
   name = "github.com/aws/aws-sdk-go"
@@ -47,7 +53,13 @@
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
-  revision = "ab9f9a6dab164b7d1246e0e688b0ab7b94d8553e"
+  revision = "1643683e1b54a9e88ad26d98f81400c8c9d9f4f9"
+
+[[projects]]
+  name = "github.com/graymeta/stow"
+  packages = ["."]
+  revision = "40ddb0743e48a0b979b7dc57ff214a686b0e1ef2"
+  version = "v0.1.0"
 
 [[projects]]
   name = "github.com/jmespath/go-jmespath"
@@ -74,6 +86,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  name = "github.com/vmihailenco/msgpack"
+  packages = [".","codes"]
+  revision = "df5e5d20905d833657b92cafe6f6341ca1378083"
+  version = "v3.2.0"
+
+[[projects]]
   branch = "release-branch.go1.8"
   name = "golang.org/x/net"
   packages = ["context","context/ctxhttp"]
@@ -93,13 +111,13 @@
 
 [[projects]]
   name = "google.golang.org/appengine"
-  packages = [".","internal","internal/app_identity","internal/base","internal/datastore","internal/log","internal/modules","internal/remote_api","internal/urlfetch","urlfetch"]
+  packages = [".","datastore","internal","internal/app_identity","internal/base","internal/datastore","internal/log","internal/modules","internal/remote_api","internal/urlfetch","urlfetch"]
   revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
   version = "v1.0.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9669b6203ee98d781a69726537e19d7fbfb1bdf3441ba58111d3208fff0c225f"
+  inputs-digest = "e3f6618615d3608adba07d2d4de8a5b89950fb903a6068b9ee0348d46a130e9f"
   solver-name = "gps-cdcl"
   solver-version = 1

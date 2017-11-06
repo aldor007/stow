@@ -1,4 +1,4 @@
-package local
+package local_meta
 
 import (
 	"errors"
@@ -12,15 +12,17 @@ import (
 // local storage.
 const (
 	ConfigKeyPath = "path"
-	ConfigKeyMetaAllow = "allowMetadata"
 )
 
 // Kind is the kind of Location this package provides.
-const Kind = "local"
+const Kind = "local-meta"
 
 const (
 	paramTypeValue = "item"
 )
+
+var metaPointer = [3]byte{0x12, 0x34, 0x00}
+
 
 func init() {
 	makefn := func(config stow.Config) (stow.Location, error) {
@@ -40,7 +42,7 @@ func init() {
 		}, nil
 	}
 	kindfn := func(u *url.URL) bool {
-		return u.Scheme == "file"
+		return u.Scheme == "file-meta"
 	}
 	stow.Register(Kind, makefn, kindfn)
 }

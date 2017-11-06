@@ -1,4 +1,4 @@
-package local
+package local_meta
 
 import (
 	"net/url"
@@ -70,16 +70,10 @@ func (l *location) CreateContainer(name string) (stow.Container, error) {
 	if err != nil {
 		return nil, err
 	}
-	allowMetaS, ok := l.config.Config(ConfigKeyMetaAllow)
-	var allowMeta bool = false
-	if ok == true && allowMetaS == "true" {
-		allowMeta = true
-	}
 
 	return &container{
 		name: name,
 		path: abspath,
-		allowMetadata: allowMeta,
 
 	}, nil
 }
@@ -95,17 +89,11 @@ func (l *location) Containers(prefix string, cursor string, count int) ([]stow.C
 	}
 
 	var cs []stow.Container
-	allowMetaS, ok := l.config.Config(ConfigKeyMetaAllow)
-	var allowMeta bool = false
-	if ok == true && allowMetaS == "true" {
-		allowMeta = true
-	}
 
 	if prefix == stow.NoPrefix && cursor == stow.CursorStart {
 		allContainer := container{
 			name: "All",
 			path: path,
-			allowMetadata: allowMeta,
 		}
 
 		cs = append(cs, &allContainer)
