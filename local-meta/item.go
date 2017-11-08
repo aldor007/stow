@@ -3,6 +3,7 @@ package local_meta
 import (
 	"io"
 	"net/url"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
@@ -140,7 +141,7 @@ func (i *item) LastMod() (time.Time, error) {
 	}
 
 	if lastMod, ok := i.properties["Last-Modified"]; ok {
-		lastModTime, err := time.Parse(time.RFC1123Z, lastMod)
+		lastModTime, err := time.Parse(http.TimeFormat, lastMod)
 		if err != nil {
 			return time.Time{}, err
 		}
