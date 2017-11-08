@@ -21,7 +21,7 @@ const (
 	paramTypeValue = "item"
 )
 
-var metaPointer = [3]byte{0x12, 0x34, 0x00}
+var metaPointer = [3]byte{0x12, 0x34, 0x01}
 
 
 func init() {

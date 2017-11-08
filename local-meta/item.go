@@ -1,6 +1,5 @@
 package local_meta
 
-
 import (
 	"io"
 	"net/url"
@@ -86,7 +85,7 @@ func (i *item) Open() (io.ReadCloser, error) {
 
 	var bufMeta [3]byte
 	io.ReadFull(r, bufMeta[:])
-	if bytes.Compare(bufMeta[0:3], metaPointer[0:3]) == 0 {
+	if bytes.Compare(bufMeta[0:1], metaPointer[0:1]) == 0 {
 		var metaLen [4]byte
 		_, err := io.ReadFull(r, metaLen[:])
 		if err != nil {
@@ -102,22 +101,25 @@ func (i *item) Open() (io.ReadCloser, error) {
 			return nil, err
 		}
 
-		if uint32(n) != mLen {
-			return nil, errors.New("Invalid metada")
-		}
+		// compare file metadata version
+		if bufMeta[2] == metaPointer[2] {
+			if uint32(n) != mLen {
+				return nil, errors.New("Invalid metada")
+			}
 
-		err = msgpack.Unmarshal(metaData[:], &metaUnmarshall)
-		if err != nil {
-			return nil, err
-		}
+			err = msgpack.Unmarshal(metaData[:], &metaUnmarshall)
+			if err != nil {
+				return nil, err
+			}
 
-		if i.metadata == nil {
-			i.metadata = make(map[string]interface{})
-		}
+			if i.metadata == nil {
+				i.metadata = make(map[string]interface{})
+			}
 
-		i.properties = metaUnmarshall
-		for k, v := range i.properties {
-			i.metadata[k] = v
+			i.properties = metaUnmarshall
+			for k, v := range i.properties {
+				i.metadata[k] = v
+			}
 		}
 
 	} else {
@@ -134,7 +136,7 @@ func (i *item) LastMod() (time.Time, error) {
 	}
 
 	if lastMod, ok := i.properties["Last-Modified"]; ok {
-		lastModTime, err := time.Parse(time.RFC1123, lastMod)
+		lastModTime, err := time.Parse(time.RFC1123Z, lastMod)
 		if err != nil {
 			return time.Time{}, err
 		}
