@@ -84,7 +84,11 @@ func (i *item) Open() (io.ReadCloser, error) {
 	}
 
 	var bufMeta [3]byte
-	io.ReadFull(r, bufMeta[:])
+	_, err = io.ReadFull(r, bufMeta[:])
+	if err != nil {
+		return nil, err
+	}
+
 	if bytes.Compare(bufMeta[0:1], metaPointer[0:1]) == 0 {
 		var metaLen [4]byte
 		_, err := io.ReadFull(r, metaLen[:])
@@ -104,7 +108,7 @@ func (i *item) Open() (io.ReadCloser, error) {
 		// compare file metadata version
 		if bufMeta[2] == metaPointer[2] {
 			if uint32(n) != mLen {
-				return nil, errors.New("Invalid metada")
+				return nil, errors.New("Invalid metadata")
 			}
 
 			err = msgpack.Unmarshal(metaData[:], &metaUnmarshall)

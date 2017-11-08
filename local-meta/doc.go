@@ -7,7 +7,7 @@ The only information required in accessing a filesystem via Stow is the path of 
 
 Usage
 
-Aside from providing stow.Dial with the correct Kind ("local"), a stow.Config instance is needed. This instance requires an entry with a key of stow.ConfigKeyPath and a value of the path of the directory.
+Aside from providing stow.Dial with the correct Kind ("local-meta"), a stow.Config instance is needed. This instance requires an entry with a key of stow.ConfigKeyPath and a value of the path of the directory.
 
 Location
 
@@ -27,7 +27,7 @@ Methods of local.Item allow the retrieval of quite detailed information. They ar
 - full path (ID)
 - base file name (Name)
 - size in bytes (Size)
-- file metadata (path, inode, directory, permission bits, etc)
+- file metadata (path, inode, directory, permission bits, etc and user defined metadata like in S3)
 - last modified date (ETag for string, LastMod for time.Time)
 - content (Open)
 */
