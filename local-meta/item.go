@@ -154,19 +154,22 @@ func (i *item) LastMod() (time.Time, error) {
 
 func (i *item) ensureInfo() error {
 	i.infoOnce.Do(func() {
-		i.info, i.infoErr = os.Lstat(i.path) // retrieve item file info
+		if i.info == nil || i.metadata == nil {
+			i.info, i.infoErr = os.Lstat(i.path) // retrieve item file info
 
-		i.infoErr = i.setMetadata(i.info) // merge file and metadata maps
-		if i.infoErr != nil {
-			return
-		}
+			i.infoErr = i.setMetadata(i.info) // merge file and metadata maps
+			if i.infoErr != nil {
+				return
+			}
 
-		r, err := i.Open()
-		if err == nil {
-			defer r.Close()
-		} else {
-			i.infoErr = err
-			return
+			r, err := i.Open()
+			if err == nil {
+				defer r.Close()
+			} else {
+				i.infoErr = err
+				return
+			}
+
 		}
 
 	})

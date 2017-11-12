@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io/ioutil"
+	"fmt"
 
 	"github.com/aldor007/stow"
 	"github.com/vmihailenco/msgpack"
@@ -64,6 +65,7 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 		return nil, err
 	}
 	f, err := os.Create(path)
+	defer f.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -74,17 +76,18 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 		return nil, err
 	}
 
-	_, err = io.Copy(f, metaReader)
+	metaLen, err := io.Copy(f, metaReader)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
 	n, err := io.Copy(f, r)
 	if err != nil {
+		defer os.Remove(path)
 		return nil, err
 	}
 	if n != size {
-		return nil, errors.New("bad size")
+		defer os.Remove(path)
+		return nil, errors.New(fmt.Sprintf("bad size %d != %d %d", n, size, metaLen))
 	}
 	return item, nil
 }
