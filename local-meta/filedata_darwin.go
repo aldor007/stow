@@ -2,11 +2,9 @@ package local_meta
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
-	"time"
 )
 
 func getFileMetadata(path string, info os.FileInfo) map[string]interface{} {
@@ -32,8 +30,8 @@ func getFileMetadata(path string, info os.FileInfo) map[string]interface{} {
 		MetadataIsDir:      info.IsDir(),
 		MetadataDir:        filepath.Dir(path),
 		MetadataName:       info.Name(),
-		MetadataMode:       fmt.Sprintf("%o", info.Mode()),
-		MetadataModeD:      fmt.Sprintf("%v", uint32(info.Mode())),
+		//MetadataMode:       fmt.Sprintf("%o", info.Mode()),
+		//MetadataModeD:      fmt.Sprintf("%v", uint32(info.Mode())),
 		MetadataPerm:       info.Mode().String(),
 		MetadataINode:      inodedata,
 		MetadataSize:       info.Size(),
@@ -43,8 +41,8 @@ func getFileMetadata(path string, info os.FileInfo) map[string]interface{} {
 	}
 
 	if stat := info.Sys().(*syscall.Stat_t); stat != nil {
-		m["atime"] = time.Unix(int64(stat.Atimespec.Sec), int64(stat.Atimespec.Nsec)).Format(time.RFC3339Nano)
-		m["mtime"] = time.Unix(int64(stat.Mtimespec.Sec), int64(stat.Mtimespec.Nsec)).Format(time.RFC3339Nano)
+		//m["atime"] = time.Unix(int64(stat.Atimespec.Sec), int64(stat.Atimespec.Nsec)).Format(time.RFC3339Nano)
+		//m["mtime"] = time.Unix(int64(stat.Mtimespec.Sec), int64(stat.Mtimespec.Nsec)).Format(time.RFC3339Nano)
 		m["uid"] = stat.Uid
 		m["gid"] = stat.Gid
 	}

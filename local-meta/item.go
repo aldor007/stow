@@ -154,7 +154,7 @@ func (i *item) LastMod() (time.Time, error) {
 
 func (i *item) ensureInfo() error {
 	i.infoOnce.Do(func() {
-		if i.info == nil || i.metadata == nil {
+		if i.metadata == nil {
 			i.info, i.infoErr = os.Lstat(i.path) // retrieve item file info
 
 			i.infoErr = i.setMetadata(i.info) // merge file and metadata maps
@@ -164,7 +164,7 @@ func (i *item) ensureInfo() error {
 
 			r, err := i.Open()
 			if err == nil {
-				defer r.Close()
+				r.Close()
 			} else {
 				i.infoErr = err
 				return
