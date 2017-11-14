@@ -39,6 +39,7 @@ type item struct {
 	infoErr  error
 	metadata map[string]interface{}
 	properties map[string]string
+	metadataReaded bool
 }
 
 func (i *item) ID() string {
@@ -90,6 +91,8 @@ func (i *item) Open() (io.ReadCloser, error) {
 		return nil, err
 	}
 
+	i.metadataReaded = true
+
 	if bytes.Compare(bufMeta[0:1], metaPointer[0:1]) == 0 {
 		var metaLen [4]byte
 		_, err := io.ReadFull(r, metaLen[:])
@@ -118,7 +121,10 @@ func (i *item) Open() (io.ReadCloser, error) {
 			}
 
 			if i.metadata == nil {
-				i.metadata = make(map[string]interface{})
+				err = i.ensureInfo()
+				if err != nil {
+					return nil, err
+				}
 			}
 
 			i.properties = metaUnmarshall
@@ -154,23 +160,24 @@ func (i *item) LastMod() (time.Time, error) {
 
 func (i *item) ensureInfo() error {
 	i.infoOnce.Do(func() {
-		if i.info == nil  {
+		if i.info == nil {
 			i.info, i.infoErr = os.Lstat(i.path) // retrieve item file info
 
 			i.infoErr = i.setMetadata(i.info) // merge file and metadata maps
 			if i.infoErr != nil {
 				return
 			}
+		}
 
+		if i.properties == nil && !i.metadataReaded {
 			r, err := i.Open()
 			if err == nil {
 				r.Close()
 			} else {
 				i.infoErr = err
-				return
 			}
-
 		}
+
 
 	})
 	return i.infoErr
