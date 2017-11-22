@@ -143,6 +143,11 @@ func (c *container) Item(id string) (stow.Item, error) {
 	if os.IsNotExist(err) {
 		return nil, stow.ErrNotFound
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
 	if info.IsDir() {
 		return nil, errors.New("unexpected directory")
 	}
