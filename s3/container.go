@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
+	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -114,10 +115,20 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 		return nil, errors.Wrap(err, "unable to create or update item, preparing metadata")
 	}
 
+	var contentType *string
+	if ct, ok := mdPrepped["content-type"]; ok {
+		contentType = ct
+		delete(mdPrepped,"content-type")
+	} else {
+		contentTypeStr := http.DetectContentType(content)
+		contentType = &contentTypeStr
+	}
+
 	params := &s3.PutObjectInput{
 		Bucket:        aws.String(c.name), // Required
 		Key:           aws.String(name),   // Required
 		ContentLength: aws.Int64(size),
+		ContentType:   contentType,
 		Body:          bytes.NewReader(content),
 		Metadata:      mdPrepped, // map[string]*string
 	}
@@ -163,20 +174,20 @@ func (c *container) Region() string {
 // May be simpler to just stick it in PUT and and do a request every time, please vouch
 // for this if so.
 func (c *container) getItem(id string) (*item, error) {
-	params := &s3.GetObjectInput{
+	params := &s3.HeadObjectInput{
 		Bucket: aws.String(c.name),
 		Key:    aws.String(id),
 	}
 
-	res, err := c.client.GetObject(params)
+	res, err := c.client.HeadObject(params)
 	if err != nil {
 		// stow needs ErrNotFound to pass the test but amazon returns an opaque error
-		if strings.Contains(err.Error(), "NoSuchKey") {
+		if strings.Contains(err.Error(), "NotFound") || strings.Contains(err.Error(), "status code: 404") {
 			return nil, stow.ErrNotFound
 		}
 		return nil, errors.Wrap(err, "getItem, getting the object")
 	}
-	defer res.Body.Close()
+
 	var etag string
 
 	if res.ETag != nil {
