@@ -40,6 +40,7 @@ type item struct {
 	metadata map[string]interface{}
 	properties map[string]string
 	metadataReaded bool
+	metadataSize uint32
 }
 
 func (i *item) ID() string {
@@ -55,7 +56,7 @@ func (i *item) Size() (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return i.info.Size(), nil
+	return i.info.Size() - int64(i.metadataSize), nil
 }
 
 func (i *item) URL() *url.URL {
@@ -127,10 +128,15 @@ func (i *item) Open() (io.ReadCloser, error) {
 				}
 			}
 
+			// 3 for header and rest for metadata
+			i.metadataSize = 3 + mLen
+
 			i.properties = metaUnmarshall
 			for k, v := range i.properties {
 				i.metadata[k] = v
 			}
+
+			return newRelativeSeeker(r, int64(i.metadataSize)), nil
 		}
 
 	} else {
