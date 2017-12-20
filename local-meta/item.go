@@ -76,7 +76,7 @@ func (i *item) ETag() (string, error) {
 		return etag, nil
 	}
 
-	return i.info.ModTime().String(), nil
+	return "W/\"" + i.info.ModTime().String() + "\"", nil
 }
 
 // Open opens the file for reading.
