@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"bytes"
 	"encoding/binary"
 	"io/ioutil"
@@ -60,10 +59,27 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 		name: name,
 	}
 
-	err := os.MkdirAll(filepath.Dir(path), 0777)
+	//info, err := os.Stat(path)
+	//if !os.IsNotExist(err) {
+	//	return nil, err
+	//}
+	//
+
+	if size == 0  {
+		err := os.MkdirAll(path, 0777)
+		if err != nil {
+			return nil, err
+		}
+		return item, nil
+	}
+
+	dirPath := filepath.Dir(path)
+	err := os.MkdirAll(dirPath, 0777)
 	if err != nil {
 		return nil, err
 	}
+
+
 	f, err := os.Create(path)
 	defer f.Close()
 	if err != nil {
@@ -93,10 +109,11 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 }
 
 func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string, error) {
-	files, err := flatdirs(c.path)
+	files, err := flatdirs(filepath.Join(c.path, prefix))
 	if err != nil {
 		return nil, "", err
 	}
+
 	if cursor != stow.CursorStart {
 		// seek to the cursor
 		ok := false
@@ -118,14 +135,15 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 		cursor = "" // end
 	}
 
-	files = files[1:]
 	var items []stow.Item
 	for _, f := range files {
-		path, err := filepath.Abs(filepath.Join(c.path, f.Name()))
+
+		path, err := filepath.Abs(filepath.Join(c.path, prefix, f.Name()))
 		if err != nil {
 			return nil, "", err
 		}
-		if !strings.HasPrefix(f.Name(), prefix) {
+
+		if path == c.path {
 			continue
 		}
 		item := &item{
@@ -163,10 +181,12 @@ func (c *container) Item(id string) (stow.Item, error) {
 // os.FileInfo for all items encountered.
 func flatdirs(path string) ([]os.FileInfo, error) {
 	var list []os.FileInfo
+
 	err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
+
 		flatname, err := filepath.Rel(path, p)
 		if err != nil {
 			return err
