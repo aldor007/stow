@@ -12,6 +12,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"github.com/vmihailenco/msgpack"
+	"crypto/md5"
+	"encoding/hex"
 )
 
 // Metadata constants describe the metadata available
@@ -76,7 +78,12 @@ func (i *item) ETag() (string, error) {
 		return etag, nil
 	}
 
-	return "W/\"" + i.info.ModTime().String() + "\"", nil
+	h := md5.New()
+	io.WriteString(h, i.info.ModTime().String())
+
+	etag := "W/\"" + hex.EncodeToString(h.Sum(nil)) + "\""
+
+	return etag, nil
 }
 
 // Open opens the file for reading.
@@ -113,7 +120,7 @@ func (i *item) Open() (io.ReadCloser, error) {
 		// compare file metadata version
 		if bufMeta[2] == metaPointer[2] {
 			if uint32(n) != mLen {
-				return nil, errors.New("Invalid metadata")
+				return nil, errors.New("invalid metadata")
 			}
 
 			err = msgpack.Unmarshal(metaData[:], &metaUnmarshall)
@@ -175,7 +182,7 @@ func (i *item) ensureInfo() error {
 			}
 		}
 
-		if i.properties == nil && !i.metadataReaded {
+		if i.properties == nil && !i.metadataReaded && i.info.IsDir() == false {
 			r, err := i.Open()
 			if err == nil {
 				r.Close()

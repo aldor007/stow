@@ -148,10 +148,6 @@ func (c *container) Item(id string) (stow.Item, error) {
 		return nil, err
 	}
 
-	if info.IsDir() {
-		return nil, errors.New("unexpected directory")
-	}
-
 	item := &item{
 		path: path,
 		name: id,
