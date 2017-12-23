@@ -94,25 +94,31 @@ func (i *item) Open() (io.ReadCloser, error) {
 	}
 
 	var bufMeta [3]byte
-	_, err = io.ReadFull(r, bufMeta[:])
+	n, err := io.ReadFull(r, bufMeta[:])
 	if err != nil {
 		return nil, err
 	}
 
 	i.metadataReaded = true
-
+	// File with metadata looks like
+	// 3 bytes for header with version - it indicated that file has metadata
+	// 4 bytes for  uint32 for meta len (metaLen)
+	// metaLen bytes - msgpack JSON  with data
 	if bytes.Compare(bufMeta[0:1], metaPointer[0:1]) == 0 {
+		i.metadataSize = uint32(n)
 		var metaLen [4]byte
-		_, err := io.ReadFull(r, metaLen[:])
+		n, err := io.ReadFull(r, metaLen[:])
 		if err != nil {
 			return nil, err
 		}
+		i.metadataSize = i.metadataSize + uint32(n)
 		mLen := binary.LittleEndian.Uint32(metaLen[:])
 
 		var metaUnmarshall map[string]string
 		metaUnmarshall = make(map[string]string)
 		metaData := make([]byte, mLen)
-		n, err := io.ReadFull(r, metaData)
+		n, err = io.ReadFull(r, metaData)
+		i.metadataSize = i.metadataSize + uint32(n)
 		if err != nil {
 			return nil, err
 		}
@@ -135,9 +141,6 @@ func (i *item) Open() (io.ReadCloser, error) {
 				}
 			}
 
-			// 3 for header and rest for metadata
-			i.metadataSize = 3 + mLen
-
 			i.properties = metaUnmarshall
 			for k, v := range i.properties {
 				i.metadata[k] = v
@@ -147,7 +150,7 @@ func (i *item) Open() (io.ReadCloser, error) {
 		}
 
 	} else {
-		r.Seek(0, 0)
+		r.Seek(0, io.SeekStart)
 	}
 
 	return r, err
