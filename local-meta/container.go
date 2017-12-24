@@ -49,7 +49,7 @@ func (c *container) CreateItem(name string) (stow.Item, io.WriteCloser, error) {
 }
 
 func (c *container) RemoveItem(id string) error {
-	return os.Remove(filepath.Join(c.path, id))
+	return os.RemoveAll(filepath.Join(c.path, id))
 }
 
 func (c *container) Put(name string, r io.Reader, size int64, metadata map[string]interface{}) (stow.Item, error) {
