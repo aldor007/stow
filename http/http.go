@@ -43,7 +43,7 @@ func init() {
 			Transport: &http.Transport{
 				Dial: (&net.Dialer{
 					Timeout:   30 * time.Second,
-					KeepAlive: 30 * time.Second,
+					KeepAlive: 3 * time.Second,
 				}).Dial,
 				TLSHandshakeTimeout:   10 * time.Second,
 				ResponseHeaderTimeout: 10 * time.Second,

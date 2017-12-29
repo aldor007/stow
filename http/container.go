@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"fmt"
 )
 
 type container struct {
@@ -77,6 +78,10 @@ func (c *container) getItem(id string) (*item, error) {
 
 	if res.StatusCode == 404 {
 		return nil, stow.ErrNotFound
+	}
+
+	if res.StatusCode != 200 {
+		return nil, errors.New(fmt.Sprintf("wrong response status code %d", res.StatusCode))
 	}
 
 	var etag string

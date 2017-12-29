@@ -78,7 +78,7 @@ func (i *item) Open() (io.ReadCloser, error) {
 	}
 
 	if response.StatusCode != 200 {
-		return nil, errors.New(fmt.Sprintf("wrong response status code %d", response.SatusCode))
+		return nil, errors.New(fmt.Sprintf("wrong response status code %d", response.StatusCode))
 	}
 
 	return response.Body, err
