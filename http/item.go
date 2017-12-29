@@ -9,6 +9,7 @@ import (
 
 	"github.com/aldor007/stow"
 	"github.com/pkg/errors"
+	"fmt"
 )
 
 // The item struct contains an id (also the name of the file/S3 Object/Item),
@@ -74,6 +75,10 @@ func (i *item) Open() (io.ReadCloser, error) {
 	response, err := i.client.Do(req)
 	if err != nil {
 		return nil, err
+	}
+
+	if response.StatusCode != 200 {
+		return nil, errors.New(fmt.Sprintf("wrong response status code %d", response.SatusCode))
 	}
 
 	return response.Body, err

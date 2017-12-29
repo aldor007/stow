@@ -135,6 +135,7 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 		cursor = "" // end
 	}
 
+	lenFiles := len(files)
 	var items []stow.Item
 	for _, f := range files {
 
@@ -143,9 +144,10 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 			return nil, "", err
 		}
 
-		if path == c.path {
+		if path == c.path && lenFiles != 1 {
 			continue
 		}
+
 		item := &item{
 			path: path,
 			name: f.Name(),
