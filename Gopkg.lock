@@ -20,12 +20,6 @@
   version = "v9.3.1"
 
 [[projects]]
-  name = "github.com/aldor007/stow"
-  packages = [".","local","test"]
-  revision = "40ddb0743e48a0b979b7dc57ff214a686b0e1ef2"
-  version = "v0.1.0"
-
-[[projects]]
   name = "github.com/aws/aws-sdk-go"
   packages = ["aws","aws/awserr","aws/awsutil","aws/client","aws/client/metadata","aws/corehandlers","aws/credentials","aws/credentials/ec2rolecreds","aws/credentials/endpointcreds","aws/credentials/stscreds","aws/defaults","aws/ec2metadata","aws/endpoints","aws/request","aws/session","aws/signer/v4","internal/shareddefaults","private/protocol","private/protocol/query","private/protocol/query/queryutil","private/protocol/rest","private/protocol/restxml","private/protocol/xml/xmlutil","service/s3","service/sts"]
   revision = "d46843b92a3a8e377d7fe24b4d70fca37f923d00"
@@ -117,6 +111,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e3f6618615d3608adba07d2d4de8a5b89950fb903a6068b9ee0348d46a130e9f"
+  inputs-digest = "c77950604aef6e56f721c66c118c103aa631fe1821d3aabb2c88d2c8ab022a66"
   solver-name = "gps-cdcl"
   solver-version = 1
