@@ -25,6 +25,13 @@ var metaPointer = [3]byte{0x12, 0x34, 0x01}
 
 
 func init() {
+	validatefn := func(config stow.Config) error {
+		_, ok := config.Config(ConfigKeyPath)
+		if !ok {
+			return errors.New("missing path config")
+		}
+		return nil
+	}
 	makefn := func(config stow.Config) (stow.Location, error) {
 		path, ok := config.Config(ConfigKeyPath)
 		if !ok {
@@ -44,5 +51,5 @@ func init() {
 	kindfn := func(u *url.URL) bool {
 		return u.Scheme == "file-meta"
 	}
-	stow.Register(Kind, makefn, kindfn)
+	stow.Register(Kind, makefn, kindfn, validatefn)
 }
