@@ -23,6 +23,13 @@ const (
 )
 
 func init() {
+	validatefn := func(config stow.Config) error {
+		_, ok := config.Config(ConfigUrl)
+		if !ok {
+			return  errors.New("missing url")
+		}
+		return nil
+	}
 	makefn := func(config stow.Config) (stow.Location, error) {
 
 		url, ok := config.Config(ConfigUrl)
@@ -66,5 +73,5 @@ func init() {
 		return u.Scheme == Kind
 	}
 
-	stow.Register(Kind, makefn, kindfn)
+	stow.Register(Kind, makefn, kindfn, validatefn)
 }

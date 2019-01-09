@@ -146,7 +146,6 @@ func (c *container) Item(id string) (stow.Item, error) {
 	item := &item{
 		path:          path,
 		name:          id,
-		path:          path,
 		contPrefixLen: len(c.path) + 1,
 	}
 	return item, nil

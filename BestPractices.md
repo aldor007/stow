@@ -8,19 +8,19 @@ Create a file called `storage.go` in your package and add the following code:
 
 ```go
 import (
-	"github.com/graymeta/stow"
+	"github.com/aldor007/stow"
 	// support Azure storage
-	_ "github.com/graymeta/stow/azure"
+	_ "github.com/aldor007/stow/azure"
 	// support Google storage
-	_ "github.com/graymeta/stow/google"
+	_ "github.com/aldor007/stow/google"
 	// support local storage
-	_ "github.com/graymeta/stow/local"
+	_ "github.com/aldor007/stow/local"
 	// support swift storage
-	_ "github.com/graymeta/stow/swift"
+	_ "github.com/aldor007/stow/swift"
 	// support s3 storage
-	_ "github.com/graymeta/stow/s3"
+	_ "github.com/aldor007/stow/s3"
 	// support oracle storage
-	_ "github.com/graymeta/stow/oracle"
+	_ "github.com/aldor007/stow/oracle"
 )
 
 // Dial dials stow storage.

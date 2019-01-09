@@ -10,6 +10,9 @@ import (
 const Kind = "noop"
 
 func init() {
+	validatefn := func(config stow.Config) error {
+		return nil
+	}
 	makefn := func(config stow.Config) (stow.Location, error) {
 
 		// Create a location with given config and client (s3 session).
@@ -24,5 +27,5 @@ func init() {
 		return u.Scheme == Kind
 	}
 
-	stow.Register(Kind, makefn, kindfn)
+	stow.Register(Kind, makefn, kindfn, validatefn)
 }

@@ -115,7 +115,7 @@
 
 [[projects]]
   digest = "1:10623f9a54b3ecc4032857b35c7db8e05b2abd11ab058c796a0f05d142bf8a73"
-  name = "github.com/graymeta/stow"
+  name = "github.com/aldor007/stow"
   packages = [
     ".",
     "test",
@@ -255,8 +255,8 @@
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/s3",
     "github.com/cheekybits/is",
-    "github.com/graymeta/stow",
-    "github.com/graymeta/stow/test",
+    "github.com/aldor007/stow",
+    "github.com/aldor007/stow/test",
     "github.com/ncw/swift",
     "github.com/pkg/errors",
     "github.com/vmihailenco/msgpack",

@@ -147,18 +147,15 @@ func (l *location) Container(id string) (stow.Container, error) {
 	if !ok {
 		return nil, errors.New("missing " + ConfigKeyPath + " configuration")
 	}
-<<<<<<< HEAD
 	containers, err := l.filesToContainers(path, filepath.Join(path, id))
-=======
-	var fullPath string
-	if filepath.IsAbs(id) {
-		fullPath = id
-	} else {
-		fullPath = filepath.Join(path, id)
-	}
+	//var fullPath string
+	//
+	//if filepath.IsAbs(id) {
+	//	fullPath = id
+	//} else {
+	//	fullPath = filepath.Join(path, id)
+	//}
 
-	containers, err := l.filesToContainers(path, fullPath)
->>>>>>> upstream/master
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, stow.ErrNotFound

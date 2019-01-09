@@ -27,14 +27,14 @@ const (
 )
 
 type item struct {
-	path     string // absolute path to file
-	name     string // file name
-	infoOnce sync.Once // protects info
-	info     os.FileInfo
-	infoErr  error
-	metadata map[string]interface{}
+	path          string    // absolute path to file
+	name          string    // file name
+	infoOnce      sync.Once // protects info
+	info          os.FileInfo
+	infoErr       error
+	metadata      map[string]interface{}
 	contPrefixLen int
->>>>>>> upstream/master
+}
 
 func (i *item) ID() string {
 	return i.name
