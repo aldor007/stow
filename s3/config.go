@@ -147,7 +147,7 @@ func newS3Client(config stow.Config) (client *s3.S3, endpoint string, err error)
 	}
 
 	endpoint, ok = config.Config(ConfigEndpoint)
-	if ok {
+	if ok && endpoint != "" {
 		awsConfig.WithEndpoint(endpoint).
 			WithS3ForcePathStyle(true)
 	}
