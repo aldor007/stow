@@ -1,4 +1,4 @@
-package swift
+package oracle
 
 import (
 	"io"
@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/graymeta/stow"
+	"github.com/aldor007/stow"
 	"github.com/ncw/swift"
 )
 
@@ -57,7 +57,7 @@ func (i *item) Size() (int64, error) {
 func (i *item) Open() (io.ReadCloser, error) {
 	r, _, err := i.client.ObjectOpen(i.container.id, i.id, false, nil)
 	var res io.ReadCloser = r
-	// FIXME: this is a workaround to issue https://github.com/graymeta/stow/issues/120
+	// FIXME: this is a workaround to issue https://github.com/aldor007/stow/issues/120
 	if s, ok := res.(readSeekCloser); ok {
 		res = &fixReadSeekCloser{readSeekCloser: s, item: i}
 	}

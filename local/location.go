@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/graymeta/stow"
+	"github.com/aldor007/stow"
 	"github.com/pkg/errors"
 )
 
@@ -70,9 +70,17 @@ func (l *location) CreateContainer(name string) (stow.Container, error) {
 	if err != nil {
 		return nil, err
 	}
+	allowMetaS, ok := l.config.Config(ConfigKeyMetaAllow)
+	var allowMeta bool = false
+	if ok == true && allowMetaS == "true" {
+		allowMeta = true
+	}
+
 	return &container{
 		name: name,
 		path: abspath,
+		allowMetadata: allowMeta,
+
 	}, nil
 }
 
@@ -87,11 +95,17 @@ func (l *location) Containers(prefix string, cursor string, count int) ([]stow.C
 	}
 
 	var cs []stow.Container
+	allowMetaS, ok := l.config.Config(ConfigKeyMetaAllow)
+	var allowMeta bool = false
+	if ok == true && allowMetaS == "true" {
+		allowMeta = true
+	}
 
 	if prefix == stow.NoPrefix && cursor == stow.CursorStart {
 		allContainer := container{
 			name: "All",
 			path: path,
+			allowMetadata: allowMeta,
 		}
 
 		cs = append(cs, &allContainer)
@@ -134,6 +148,14 @@ func (l *location) Container(id string) (stow.Container, error) {
 		return nil, errors.New("missing " + ConfigKeyPath + " configuration")
 	}
 	containers, err := l.filesToContainers(path, filepath.Join(path, id))
+	//var fullPath string
+	//
+	//if filepath.IsAbs(id) {
+	//	fullPath = id
+	//} else {
+	//	fullPath = filepath.Join(path, id)
+	//}
+
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, stow.ErrNotFound

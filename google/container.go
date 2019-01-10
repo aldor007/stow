@@ -4,7 +4,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/graymeta/stow"
+	"github.com/aldor007/stow"
 	"github.com/pkg/errors"
 	storage "google.golang.org/api/storage/v1"
 )

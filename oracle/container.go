@@ -1,10 +1,10 @@
-package swift
+package oracle
 
 import (
 	"io"
 	"strings"
 
-	"github.com/graymeta/stow"
+	"github.com/aldor007/stow"
 	"github.com/ncw/swift"
 	"github.com/pkg/errors"
 )

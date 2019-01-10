@@ -10,11 +10,12 @@ container:
 	docker build --no-cache -t builder-stow test/
 
 runcontainer:
-	docker run -v $(WORKSPACE):/mnt/src/github.com/graymeta/stow builder-stow
+	docker run -v $(WORKSPACE):/mnt/src/github.com/aldor007/stow builder-stow
 
 deps:
-	go get github.com/tebeka/go2xunit
-	go get -u github.com/golang/dep/cmd/dep
+	@rm -rf vendor*
+	@which go2xunit || (go get github.com/tebeka/go2xunit)
+	@which dep || (go get -u github.com/golang/dep/cmd/dep)
 	dep ensure
 
 test: clean deps vet

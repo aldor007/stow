@@ -5,13 +5,14 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/graymeta/stow"
+	"github.com/aldor007/stow"
 )
 
 // ConfigKeys are the supported configuration items for
 // local storage.
 const (
 	ConfigKeyPath = "path"
+	ConfigKeyMetaAllow = "allowMetadata"
 )
 
 // Kind is the kind of Location this package provides.
@@ -22,6 +23,13 @@ const (
 )
 
 func init() {
+	validatefn := func(config stow.Config) error {
+		_, ok := config.Config(ConfigKeyPath)
+		if !ok {
+			return errors.New("missing path config")
+		}
+		return nil
+	}
 	makefn := func(config stow.Config) (stow.Location, error) {
 		path, ok := config.Config(ConfigKeyPath)
 		if !ok {
@@ -41,5 +49,5 @@ func init() {
 	kindfn := func(u *url.URL) bool {
 		return u.Scheme == "file"
 	}
-	stow.Register(Kind, makefn, kindfn)
+	stow.Register(Kind, makefn, kindfn, validatefn)
 }

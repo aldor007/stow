@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/graymeta/stow"
+	"github.com/aldor007/stow"
 	"github.com/ncw/swift"
 )
 
