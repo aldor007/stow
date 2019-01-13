@@ -115,11 +115,32 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 	// Convert map[string]interface{} to map[string]*string
 	mdPrepped, err := prepMetadata(metadata)
 
+	var ct string
+	var cc string
+	ctMeta, ok := metadata["content-type"]
+	if ok {
+		ct = ctMeta.(string)
+		delete(metadata, "cache-control")
+	} else {
+		ct = "application/octet-stream"
+	}
+
+	ccMeta, ok := metadata["cache-control"]
+	if ok {
+		cc = ccMeta.(string)
+		delete(metadata, "content-type")
+	} else {
+		cc = ""
+	}
+
+
 	// Perform an upload.
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket:   aws.String(c.name),
 		Key:      aws.String(name),
 		Body:     r,
+		ContentType: aws.String(ct),
+		CacheControl: aws.String(cc),
 		Metadata: mdPrepped,
 	})
 
