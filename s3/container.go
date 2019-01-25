@@ -13,6 +13,7 @@ import (
 	"os"
 )
 
+
 // Amazon S3 bucket contains a creation date and a name.
 type container struct {
 	// name is needed to retrieve items.
@@ -22,6 +23,16 @@ type container struct {
 	// region describes the AWS Availability Zone of the S3 Bucket.
 	region         string
 	customEndpoint string
+}
+
+type s3DataType struct {
+	contentType *string
+	cacheControl *string
+	contentDisposition *string
+	storageClass *string
+	contentMd5 *string
+	tags *string
+	cannedAcl *string
 }
 
 // ID returns a string value which represents the name of the container.
@@ -113,35 +124,21 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 	uploader := s3manager.NewUploaderWithClient(c.client)
 
 	// Convert map[string]interface{} to map[string]*string
-	mdPrepped, err := prepMetadata(metadata)
-
-	var ct string
-	var cc string
-	ctMeta, ok := metadata["content-type"]
-	if ok {
-		ct = ctMeta.(string)
-		delete(metadata, "cache-control")
-	} else {
-		ct = "application/octet-stream"
-	}
-
-	ccMeta, ok := metadata["cache-control"]
-	if ok {
-		cc = ccMeta.(string)
-		delete(metadata, "content-type")
-	} else {
-		cc = ""
-	}
-
+	mdPrepped, s3Data, err := prepMetadata(metadata)
 
 	// Perform an upload.
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket:   aws.String(c.name),
 		Key:      aws.String(name),
 		Body:     r,
-		ContentType: aws.String(ct),
-		CacheControl: aws.String(cc),
 		Metadata: mdPrepped,
+		ContentType: s3Data.contentType ,
+		CacheControl: s3Data.cacheControl,
+		ContentDisposition: s3Data.contentDisposition,
+		ContentMD5: s3Data.contentMd5,
+		StorageClass: s3Data.storageClass,
+		ACL: s3Data.cannedAcl,
+		Tagging: s3Data.tags,
 	})
 
 	if err != nil {
@@ -262,17 +259,36 @@ func cleanEtag(etag string) string {
 }
 
 // prepMetadata parses a raw map into the native type required by S3 to set metadata (map[string]*string).
-// TODO: validation for key values. This function also assumes that the value of a key value pair is a string.
-func prepMetadata(md map[string]interface{}) (map[string]*string, error) {
+func prepMetadata(md map[string]interface{}) (map[string]*string, s3DataType, error) {
 	m := make(map[string]*string, len(md))
+	s3Data := s3DataType{}
 	for key, value := range md {
 		strValue, valid := value.(string)
 		if !valid {
-			return nil, errors.Errorf(`value of key '%s' in metadata must be of type string`, key)
+			return nil, s3Data, errors.Errorf(`value of key '%s' in metadata must be of type string`, key)
 		}
-		m[key] = aws.String(strValue)
+		awsValue := aws.String(strValue)
+		switch key {
+		case "cache-control":
+			s3Data.cacheControl = awsValue
+		case "content-type":
+			s3Data.contentType = awsValue
+		case "content-disposition":
+			s3Data.contentDisposition = awsValue
+		case "x-amz-storage-class":
+			s3Data.storageClass = awsValue
+		case "x-amz-tagging":
+			s3Data.tags = awsValue
+		case "content-md5":
+			s3Data.contentMd5 = awsValue
+		case "x-amx-acl":
+			s3Data.cannedAcl= awsValue
+		default:
+			m[key] = awsValue
+		}
+
 	}
-	return m, nil
+	return m, s3Data, nil
 }
 
 // The first letter of a dash separated key value is capitalized, so perform a ToLower on it.

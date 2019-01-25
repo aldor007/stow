@@ -25,6 +25,11 @@ func (l *Location) Close() error {
 	return nil // nothing to close
 }
 
+func (l *Location) HasRanges() bool {
+	// TODO add implementation and change to true
+	return false
+}
+
 // CreateContainer creates a new container, in this case a bucket.
 func (l *Location) CreateContainer(containerName string) (stow.Container, error) {
 

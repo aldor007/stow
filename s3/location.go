@@ -17,6 +17,10 @@ type location struct {
 	client         *s3.S3
 }
 
+
+func (l *location) HasRanges() bool {
+	return true
+}
 // CreateContainer creates a new container, in this case an S3 bucket.
 // The bare minimum needed is a container name, but there are many other
 // options that can be provided.

@@ -17,6 +17,11 @@ type location struct {
 	headers  map[string]string
 }
 
+func (l *location) HasRanges() bool {
+	// TODO add implementation and change to true
+	return false
+}
+
 func (l *location) CreateContainer(containerName string) (stow.Container, error) {
 	return nil, errors.New("not implemented")
 }

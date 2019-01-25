@@ -53,6 +53,10 @@ func (i *Item) Open() (io.ReadCloser, error) {
 	return res.Body, nil
 }
 
+func (i *Item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
+	return i.Open()
+}
+
 // LastMod returns the last modified date of the item.
 func (i *Item) LastMod() (time.Time, error) {
 	return i.lastModified, nil

@@ -95,6 +95,26 @@ func (i *item) Open() (io.ReadCloser, error) {
 	return response.Body, nil
 }
 
+func (i *item) OpenParams(p map[string]interface{}) (io.ReadCloser, error) {
+	var strRange string
+	objetRange, ok  := p["range"]
+	if ok {
+		strRange = objetRange.(string)
+	}
+	params := &s3.GetObjectInput{
+		Bucket: aws.String(i.container.Name()),
+		Key:    aws.String(i.ID()),
+		Range: aws.String(strRange),
+	}
+
+	response, err := i.client.GetObject(params)
+	if err != nil {
+		return nil, errors.Wrap(err, "Open, getting the object")
+	}
+	return response.Body, nil
+}
+
+
 // LastMod returns the last modified date of the item. The response of an item that is PUT
 // does not contain this field. Solution? Detect when the LastModified field (a *time.Time)
 // is nil, then do a manual request for it via the Item() method of the container which

@@ -12,6 +12,10 @@ type location struct {
 	config stow.Config
 }
 
+func (l *location) HasRanges() bool {
+	return false
+}
+
 func (l *location) CreateContainer(containerName string) (stow.Container, error) {
 	return nil, errors.New("not implemented")
 }

@@ -19,6 +19,11 @@ func (l *location) Close() error {
 	return nil // nothing to close
 }
 
+func (l *location) HasRanges() bool {
+	// TODO add implementation and change to true
+	return false
+}
+
 // CreateContainer creates a new container (bucket)
 func (l *location) CreateContainer(name string) (stow.Container, error) {
 	bucket, err := l.client.CreateBucket(name, backblaze.AllPrivate)

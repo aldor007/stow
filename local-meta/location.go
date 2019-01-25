@@ -19,6 +19,11 @@ func (l *location) Close() error {
 	return nil // nothing to close
 }
 
+func (l *location) HasRanges() bool {
+	// TODO add implementation and change to true
+	return false
+}
+
 func (l *location) ItemByURL(u *url.URL) (stow.Item, error) {
 	rootPath, ok := l.config.Config(ConfigKeyPath)
 	if !ok {

@@ -47,6 +47,10 @@ func (i *item) Open() (io.ReadCloser, error) {
 	return i.client.GetContainerReference(i.container.id).GetBlobReference(i.id).Get(nil)
 }
 
+func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
+	return i.Open()
+}
+
 func (i *item) ETag() (string, error) {
 	return i.properties.Etag, nil
 }

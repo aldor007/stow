@@ -156,6 +156,10 @@ func (i *item) Open() (io.ReadCloser, error) {
 	return r, err
 }
 
+func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
+	return i.Open()
+}
+
 func (i *item) LastMod() (time.Time, error) {
 	err := i.ensureInfo()
 	if err != nil {

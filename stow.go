@@ -75,6 +75,8 @@ type Location interface {
 	// ItemByURL gets an Item at this location with the
 	// specified URL.
 	ItemByURL(url *url.URL) (Item, error)
+	// HasRange returns true when location can returns HTTP Range responses
+	HasRanges() bool
 }
 
 // Container represents a container.
@@ -120,6 +122,9 @@ type Item interface {
 	// Open opens the Item for reading.
 	// Calling code must close the io.ReadCloser.
 	Open() (io.ReadCloser, error)
+	// Open opens the Item for reading. you can pass additional params
+	// Calling code must close the io.ReadCloser.
+	OpenParams(params map[string]interface{}) (io.ReadCloser, error)
 	// ETag is a string that is different when the Item is
 	// different, and the same when the item is the same.
 	// Usually this is the last modified datetime.

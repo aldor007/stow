@@ -64,6 +64,10 @@ func (i *item) Open() (io.ReadCloser, error) {
 	return res, err
 }
 
+func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
+	return i.Open()
+}
+
 type readSeekCloser interface {
 	io.ReadSeeker
 	io.Closer
