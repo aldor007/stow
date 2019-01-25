@@ -72,6 +72,10 @@ func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
 	return i.Open()
 }
 
+func (i *item) ContentRange() (stow.ContentRangeData, error) {
+	return stow.ContentRangeData{}, errors.New("not implemented")
+}
+
 // ETag returns an etag for an item. In this implementation we use the file's last modified timestamp
 func (i *item) ETag() (string, error) {
 	if err := i.ensureInfo(); err != nil {

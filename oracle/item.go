@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/aldor007/stow"
 	"github.com/ncw/swift"
 )
@@ -66,6 +67,10 @@ func (i *item) Open() (io.ReadCloser, error) {
 
 func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
 	return i.Open()
+}
+
+func (i *item) ContentRange() (stow.ContentRangeData, error) {
+	return stow.ContentRangeData{}, errors.New("not implemented")
 }
 
 type readSeekCloser interface {

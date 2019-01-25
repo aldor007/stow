@@ -134,6 +134,13 @@ type Item interface {
 	// Metadata gets a map of key/values that belong
 	// to this Item.
 	Metadata() (map[string]interface{}, error)
+	// ContentRange will have value on range response
+	ContentRange() (ContentRangeData, error)
+}
+
+type ContentRangeData struct {
+	ContentRange string
+	ContentLength int64
 }
 
 // Taggable represents a taggable Item

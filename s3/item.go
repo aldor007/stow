@@ -33,6 +33,7 @@ type item struct {
 	tags       map[string]interface{}
 	tagsOnce   sync.Once
 	tagsErr    error
+	rangeData  stow.ContentRangeData
 }
 
 type properties struct {
@@ -111,7 +112,18 @@ func (i *item) OpenParams(p map[string]interface{}) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "Open, getting the object")
 	}
+	if cr := response.ContentRange; cr != nil {
+		i.rangeData = stow.ContentRangeData{*cr, *response.ContentLength}
+	}
+
 	return response.Body, nil
+}
+
+func (i *item) ContentRange() (stow.ContentRangeData, error) {
+	if i.rangeData.ContentRange == "" {
+		return stow.ContentRangeData{}, errors.New("response is not a range")
+	}
+	return i.rangeData, nil
 }
 
 

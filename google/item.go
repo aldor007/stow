@@ -7,7 +7,9 @@ import (
 	//	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	storage "google.golang.org/api/storage/v1"
+	"github.com/aldor007/stow"
 )
 
 type Item struct {
@@ -51,6 +53,10 @@ func (i *Item) Open() (io.ReadCloser, error) {
 	}
 
 	return res.Body, nil
+}
+
+func (i *Item) ContentRange() (stow.ContentRangeData, error) {
+	return stow.ContentRangeData{}, errors.New("not implemented")
 }
 
 func (i *Item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {

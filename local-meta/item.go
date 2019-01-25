@@ -14,6 +14,7 @@ import (
 	"github.com/vmihailenco/msgpack"
 	"crypto/md5"
 	"encoding/hex"
+	"github.com/aldor007/stow"
 )
 
 // Metadata constants describe the metadata available
@@ -158,6 +159,11 @@ func (i *item) Open() (io.ReadCloser, error) {
 
 func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
 	return i.Open()
+}
+
+
+func (i *item) ContentRange() (stow.ContentRangeData, error) {
+	return stow.ContentRangeData{}, errors.New("not implemented")
 }
 
 func (i *item) LastMod() (time.Time, error) {

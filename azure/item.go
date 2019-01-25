@@ -51,6 +51,10 @@ func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
 	return i.Open()
 }
 
+func (i *item) ContentRange() (stow.ContentRangeData, error) {
+	return stow.ContentRangeData{}, errors.New("not implemented")
+}
+
 func (i *item) ETag() (string, error) {
 	return i.properties.Etag, nil
 }
