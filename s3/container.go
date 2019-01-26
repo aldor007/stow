@@ -282,7 +282,7 @@ func prepMetadata(md map[string]interface{}) (map[string]*string, s3DataType, er
 			s3Data.tags = awsValue
 		case "content-md5":
 			s3Data.contentMd5 = awsValue
-		case "x-amx-acl":
+		case "x-amz-acl":
 			s3Data.cannedAcl= awsValue
 		default:
 			m[key] = awsValue
