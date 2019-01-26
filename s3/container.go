@@ -263,6 +263,7 @@ func prepMetadata(md map[string]interface{}) (map[string]*string, s3DataType, er
 	m := make(map[string]*string, len(md))
 	s3Data := s3DataType{}
 	for key, value := range md {
+		key = strings.ToLower(key)
 		strValue, valid := value.(string)
 		if !valid {
 			return nil, s3Data, errors.Errorf(`value of key '%s' in metadata must be of type string`, key)
