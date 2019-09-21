@@ -205,6 +205,28 @@ func (c *container) getItem(id string) (*item, error) {
 		return nil, errors.Wrap(err, "unable to retrieve Item information, parsing metadata")
 	}
 
+	if res.CacheControl != nil {
+		md["cache-control"] = *res.CacheControl
+	}
+
+	if res.ContentDisposition != nil {
+		md["content-disposition"] = *res.ContentDisposition
+	}
+
+
+	if res.ContentEncoding != nil {
+		md["content-encoding"] = *res.ContentEncoding
+	}
+
+	if res.ContentType != nil {
+		md["content-type"] = *res.ContentType
+	}
+
+
+	if res.ContentLanguage != nil {
+		md["content-language"] = *res.ContentLanguage
+	}
+
 	i := &item{
 		container: c,
 		client:    c.client,
