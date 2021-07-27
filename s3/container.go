@@ -3,16 +3,17 @@ package s3
 import (
 	"io"
 	"strings"
+	"sync"
+
+	"os"
 
 	"github.com/aldor007/stow"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/pkg/errors"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"os"
+	"github.com/pkg/errors"
 )
-
 
 // Amazon S3 bucket contains a creation date and a name.
 type container struct {
@@ -23,16 +24,17 @@ type container struct {
 	// region describes the AWS Availability Zone of the S3 Bucket.
 	region         string
 	customEndpoint string
+	lock           sync.Mutex
 }
 
 type s3DataType struct {
-	contentType *string
-	cacheControl *string
+	contentType        *string
+	cacheControl       *string
 	contentDisposition *string
-	storageClass *string
-	contentMd5 *string
-	tags *string
-	cannedAcl *string
+	storageClass       *string
+	contentMd5         *string
+	tags               *string
+	cannedAcl          *string
 }
 
 // ID returns a string value which represents the name of the container.
@@ -128,17 +130,17 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 
 	// Perform an upload.
 	result, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket:   aws.String(c.name),
-		Key:      aws.String(name),
-		Body:     r,
-		Metadata: mdPrepped,
-		ContentType: s3Data.contentType ,
-		CacheControl: s3Data.cacheControl,
+		Bucket:             aws.String(c.name),
+		Key:                aws.String(name),
+		Body:               r,
+		Metadata:           mdPrepped,
+		ContentType:        s3Data.contentType,
+		CacheControl:       s3Data.cacheControl,
 		ContentDisposition: s3Data.contentDisposition,
-		ContentMD5: s3Data.contentMd5,
-		StorageClass: s3Data.storageClass,
-		ACL: s3Data.cannedAcl,
-		Tagging: s3Data.tags,
+		ContentMD5:         s3Data.contentMd5,
+		StorageClass:       s3Data.storageClass,
+		ACL:                s3Data.cannedAcl,
+		Tagging:            s3Data.tags,
 	})
 
 	if err != nil {
@@ -184,7 +186,6 @@ func (c *container) getItem(id string) (*item, error) {
 		Bucket: aws.String(c.name),
 		Key:    aws.String(id),
 	}
-
 	res, err := c.client.HeadObject(params)
 	if err != nil {
 		// stow needs ErrNotFound to pass the test but amazon returns an opaque error
@@ -213,7 +214,6 @@ func (c *container) getItem(id string) (*item, error) {
 		md["content-disposition"] = *res.ContentDisposition
 	}
 
-
 	if res.ContentEncoding != nil {
 		md["content-encoding"] = *res.ContentEncoding
 	}
@@ -221,7 +221,6 @@ func (c *container) getItem(id string) (*item, error) {
 	if res.ContentType != nil {
 		md["content-type"] = *res.ContentType
 	}
-
 
 	if res.ContentLanguage != nil {
 		md["content-language"] = *res.ContentLanguage
@@ -305,7 +304,7 @@ func prepMetadata(md map[string]interface{}) (map[string]*string, s3DataType, er
 		case "content-md5":
 			s3Data.contentMd5 = awsValue
 		case "x-amz-acl":
-			s3Data.cannedAcl= awsValue
+			s3Data.cannedAcl = awsValue
 		default:
 			m[key] = awsValue
 		}

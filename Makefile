@@ -20,7 +20,6 @@ deps:
 
 test: clean deps vet
 	go test -v $(go list ./... | grep -v /vendor/) | tee tests.out
-	go2xunit -fail -input tests.out -output tests.xml
 
 vet:
 	go vet $(go list ./... | grep -v /vendor/)

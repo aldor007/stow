@@ -4,9 +4,9 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/aldor007/stow"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aldor007/stow"
 	"github.com/pkg/errors"
 )
 
@@ -17,10 +17,10 @@ type location struct {
 	client         *s3.S3
 }
 
-
 func (l *location) HasRanges() bool {
 	return true
 }
+
 // CreateContainer creates a new container, in this case an S3 bucket.
 // The bare minimum needed is a container name, but there are many other
 // options that can be provided.
@@ -98,7 +98,6 @@ func (l *location) Container(id string) (stow.Container, error) {
 	params := &s3.GetBucketLocationInput{
 		Bucket: aws.String(id), // Required
 	}
-
 	_, err := l.client.GetBucketLocation(params)
 	if err != nil {
 		// stow needs ErrNotFound to pass the test but amazon returns an opaque error

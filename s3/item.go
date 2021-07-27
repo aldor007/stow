@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aldor007/stow"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aldor007/stow"
 	"github.com/pkg/errors"
 )
 
@@ -98,14 +98,14 @@ func (i *item) Open() (io.ReadCloser, error) {
 
 func (i *item) OpenParams(p map[string]interface{}) (io.ReadCloser, error) {
 	var strRange string
-	objetRange, ok  := p["range"]
+	objetRange, ok := p["range"]
 	if ok {
 		strRange = objetRange.(string)
 	}
 	params := &s3.GetObjectInput{
 		Bucket: aws.String(i.container.Name()),
 		Key:    aws.String(i.ID()),
-		Range: aws.String(strRange),
+		Range:  aws.String(strRange),
 	}
 
 	response, err := i.client.GetObject(params)
@@ -125,7 +125,6 @@ func (i *item) ContentRange() (stow.ContentRangeData, error) {
 	}
 	return i.rangeData, nil
 }
-
 
 // LastMod returns the last modified date of the item. The response of an item that is PUT
 // does not contain this field. Solution? Detect when the LastModified field (a *time.Time)

@@ -1,15 +1,18 @@
 package s3
 
 import (
+	"log"
+	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"time"
 
+	"github.com/aldor007/stow"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aldor007/stow"
 	"github.com/pkg/errors"
 )
 
@@ -45,7 +48,43 @@ const (
 	// ConfigDisableSSL is optional config value for disabling SSL support on custom endpoints
 	// Its default value is "false", to disable SSL set it to "true".
 	ConfigDisableSSL = "disable_ssl"
+
+	// ConfigHTTPTracing enable verbose logs for http requests
+	ConfigHTTPTracing = "false"
 )
+
+
+// transport is an http.RoundTripper that keeps track of the in-flight
+// request and implements hooks to report HTTP tracing events.
+type tracingTransport struct {
+	transport http.RoundTripper
+}
+
+// RoundTrip wraps http.DefaultTransport.RoundTrip to keep track
+// of the current request.
+func (t *tracingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	trace := &httptrace.ClientTrace{
+		PutIdleConn: func(err error) {
+			if err != nil {
+				log.Printf("REQ_TRACE Method=%s Put Idle Conn: %v\n", req.Method, err)
+			}
+		},
+		GotConn: func(info httptrace.GotConnInfo) {
+			if !info.Reused {
+				log.Printf("REQ_TRACE Method=%s GotConn: %+v NEW_CONN\n", req.Method, info)
+			}
+			log.Printf("REQ_TRACE Method=%s GotConn: %+v\n", req.Method, info)
+		},
+		ConnectStart: func(network, addr string) {
+			log.Printf("REQ_TRACE Method=%s ConnectStart\n", req.Method)
+		},
+		ConnectDone: func(network, addr string, err error) {
+			log.Printf("REQ_TRACE Method=%s ConnectDone: %v\n", req.Method, err)
+		},
+	}
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+	return t.transport.RoundTrip(req)
+}
 
 func init() {
 	validatefn := func(config stow.Config) error {
@@ -127,10 +166,33 @@ func newS3Client(config stow.Config) (client *s3.S3, endpoint string, err error)
 	if authType == "" {
 		authType = authTypeAccessKey
 	}
-
+	transport := http.RoundTripper(&http.Transport{
+		Dial: (&net.Dialer{
+			Timeout:   4 * time.Second,
+			KeepAlive: 60 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 10 * time.Second,
+		ExpectContinueTimeout: 3 * time.Second,
+		MaxIdleConns:        200,
+		// This number must be tuned for highly loaded servers
+		// to prevent spawning new connections every time
+		// when there is a need for have bigger number of concurrent connections.
+		// The default value of 2 is to low for such servers.
+		MaxIdleConnsPerHost: 50,
+		IdleConnTimeout: 60 * time.Second,
+	})
+	if _, ok := config.Config(ConfigHTTPTracing); ok  {
+		transport = &tracingTransport{
+			transport: transport,
+		}
+	}
+	c := &http.Client{
+		Transport: transport,
+	}
 	awsConfig := aws.NewConfig().
-		WithHTTPClient(http.DefaultClient).
-		WithMaxRetries(aws.UseServiceDefaultRetries).
+		WithHTTPClient(c).
+		WithMaxRetries(3).
 		WithLogger(aws.NewDefaultLogger()).
 		WithLogLevel(aws.LogOff).
 		WithSleepDelay(time.Sleep)
