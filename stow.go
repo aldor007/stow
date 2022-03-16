@@ -122,9 +122,6 @@ type Item interface {
 	// Open opens the Item for reading.
 	// Calling code must close the io.ReadCloser.
 	Open() (io.ReadCloser, error)
-	// Open opens the Item for reading. you can pass additional params
-	// Calling code must close the io.ReadCloser.
-	OpenParams(params map[string]interface{}) (io.ReadCloser, error)
 	// ETag is a string that is different when the Item is
 	// different, and the same when the item is the same.
 	// Usually this is the last modified datetime.
@@ -134,13 +131,20 @@ type Item interface {
 	// Metadata gets a map of key/values that belong
 	// to this Item.
 	Metadata() (map[string]interface{}, error)
-	// ContentRange will have value on range response
-	ContentRange() (ContentRangeData, error)
 }
 
 type ContentRangeData struct {
 	ContentRange string
 	ContentLength int64
+}
+
+// ItemRanger represents an item that can be partially downloaded.
+type ItemRanger interface {
+	// OpenRange opens the item for reading starting at byte start and ending
+	// at byte end.
+	OpenRange(start, end uint64) (io.ReadCloser, error)
+	// ContentRange will have value on range response
+	ContentRange() (ContentRangeData, error)
 }
 
 // Taggable represents a taggable Item

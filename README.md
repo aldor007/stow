@@ -1,7 +1,7 @@
 ![Stow logo](stow-aeroplane.png)
 ![Stow definition](stow-definition.png)
-[![GoDoc](https://godoc.org/github.com/graymeta/stow?status.svg)](https://godoc.org/github.com/graymeta/stow)
-[![Go Report Card](https://goreportcard.com/badge/github.com/graymeta/stow)](https://goreportcard.com/report/github.com/graymeta/stow)
+[![GoDoc](https://godoc.org/github.com/aldor007/stow?status.svg)](https://godoc.org/github.com/aldor007/stow)
+[![Go Report Card](https://goreportcard.com/badge/github.com/aldor007/stow)](https://goreportcard.com/report/github.com/aldor007/stow)
 
 Cloud storage abstraction package for Go.
 
@@ -24,6 +24,7 @@ Stow provides implementations for storage services, blob stores, cloud storage e
 * Microsoft Azure Blob Storage
 * Openstack Swift (with auth v2)
 * Oracle Storage Cloud Service
+* SFTP
 
 ## Concepts
 
@@ -75,9 +76,9 @@ Import Stow plus any of the implementation packages that you wish to provide. Fo
 
 ```go
 import (
-	"github.com/graymeta/stow"
-	_ "github.com/graymeta/stow/google"
-	_ "github.com/graymeta/stow/s3"
+	"github.com/aldor007/stow"
+	_ "github.com/aldor007/stow/google"
+	_ "github.com/aldor007/stow/s3"
 )
 ```
 
@@ -93,9 +94,9 @@ To connect to a location, you need to know the `kind` string (available by acces
 ```go
 kind := "s3"
 config := stow.ConfigMap{
-	s3.ConfigAccessKeyID: "246810"
+	s3.ConfigAccessKeyID: "246810",
 	s3.ConfigSecretKey:   "abc123",
-	s3.ConfigRegion:      "eu-west-1"
+	s3.ConfigRegion:      "eu-west-1",
 }
 location, err := stow.Dial(kind, config)
 if err != nil {

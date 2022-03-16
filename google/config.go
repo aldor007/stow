@@ -1,16 +1,16 @@
 package google
 
 import (
+	"context"
 	"errors"
-	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/aldor007/stow"
-	"golang.org/x/net/context"
-	"golang.org/x/oauth2"
+	"cloud.google.com/go/storage"
 	"golang.org/x/oauth2/google"
-	storage "google.golang.org/api/storage/v1"
+	"google.golang.org/api/option"
+
+	"github.com/aldor007/stow"
 )
 
 // Kind represents the name of the location/storage type.
@@ -48,7 +48,7 @@ func init() {
 		}
 
 		// Create a new client
-		client, err := newGoogleStorageClient(config)
+		ctx, client, err := newGoogleStorageClient(config)
 		if err != nil {
 			return nil, err
 		}
@@ -57,6 +57,7 @@ func init() {
 		loc := &Location{
 			config: config,
 			client: client,
+			ctx:    ctx,
 		}
 
 		return loc, nil
@@ -70,31 +71,32 @@ func init() {
 }
 
 // Attempts to create a session based on the information given.
-func newGoogleStorageClient(config stow.Config) (*storage.Service, error) {
+func newGoogleStorageClient(config stow.Config) (context.Context, *storage.Client, error) {
 	json, _ := config.Config(ConfigJSON)
-	var httpClient *http.Client
-	scopes := []string{storage.DevstorageReadWriteScope}
+
+	scopes := []string{storage.ScopeFullControl}
 	if s, ok := config.Config(ConfigScopes); ok && s != "" {
 		scopes = strings.Split(s, ",")
 	}
+
+	ctx := context.Background()
+	var creds *google.Credentials
+	var err error
 	if json != "" {
-		jwtConf, err := google.JWTConfigFromJSON([]byte(json), scopes...)
+		creds, err = google.CredentialsFromJSON(ctx, []byte(json), scopes...)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		httpClient = jwtConf.Client(context.Background())
-
 	} else {
-		creds, err := google.FindDefaultCredentials(context.Background(), strings.Join(scopes, ","))
+		creds, err = google.FindDefaultCredentials(ctx, scopes...)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		httpClient = oauth2.NewClient(context.Background(), creds.TokenSource)
-	}
-	service, err := storage.New(httpClient)
-	if err != nil {
-		return nil, err
 	}
 
-	return service, nil
+	client, err := storage.NewClient(ctx, option.WithCredentials(creds))
+	if err != nil {
+		return nil, nil, err
+	}
+	return ctx, client, nil
 }

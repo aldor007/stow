@@ -12,17 +12,11 @@ container:
 runcontainer:
 	docker run -v $(WORKSPACE):/mnt/src/github.com/aldor007/stow builder-stow
 
-deps:
-	@rm -rf vendor*
-	@which go2xunit || (go get github.com/tebeka/go2xunit)
-	@which dep || (go get -u github.com/golang/dep/cmd/dep)
-	dep ensure
-
-test: clean deps vet
-	go test -v $(go list ./... | grep -v /vendor/) | tee tests.out
+test: clean vet
+	go test -v ./...
 
 vet:
-	go vet $(go list ./... | grep -v /vendor/)
+	go vet ./...
 
 clean:
-	rm -f tests.out test.xml
+	@true

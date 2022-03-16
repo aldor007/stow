@@ -1,6 +1,7 @@
 package b2
 
 import (
+	"fmt"
 	"io"
 	"net/url"
 	"sync"
@@ -18,13 +19,17 @@ type item struct {
 	size         int64
 	lastModified time.Time
 	bucket       *backblaze.Bucket
+	rangeData  stow.ContentRangeData
 
 	metadata map[string]interface{}
 	infoOnce sync.Once
 	infoErr  error
 }
 
-var _ stow.Item = (*item)(nil)
+var (
+	_ stow.Item       = (*item)(nil)
+	_ stow.ItemRanger = (*item)(nil)
+)
 
 // ID returns this item's ID
 func (i *item) ID() string {
@@ -68,12 +73,26 @@ func (i *item) Open() (io.ReadCloser, error) {
 	return r, err
 }
 
-func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
-	return i.Open()
+// OpenRange opens the item for reading starting at byte start and ending
+// at byte end.
+func (i *item) OpenRange(start, end uint64) (io.ReadCloser, error) {
+	b, r, err := i.bucket.DownloadFileRangeByName(
+		i.name,
+		&backblaze.FileRange{Start: int64(start), End: int64(end)},
+	)
+
+	if err != nil {
+		i.rangeData = stow.ContentRangeData{ContentRange:fmt.Sprintf("bytes %d-%d/*", start, end), ContentLength: b.ContentLength}
+	}
+
+	return r, err
 }
 
 func (i *item) ContentRange() (stow.ContentRangeData, error) {
-	return stow.ContentRangeData{}, errors.New("not implemented")
+	if i.rangeData.ContentRange == "" {
+		return stow.ContentRangeData{}, errors.New("response is not a range")
+	}
+	return i.rangeData, nil
 }
 
 // ETag returns an etag for an item. In this implementation we use the file's last modified timestamp
