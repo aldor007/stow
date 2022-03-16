@@ -2,6 +2,7 @@ package stow
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/url"
 	"sync"
@@ -272,4 +273,18 @@ func IsNotSupported(err error) bool {
 // as not supported by this implementation.
 func NotSupported(feature string) error {
 	return errNotSupported(feature)
+}
+
+func GetContentRange(item Item, start, end uint64) (data ContentRangeData, err error) {
+	size, err := item.Size()
+	if err != nil {
+		return
+	}
+	
+	if int64(end) > size {
+		end = uint64(size)
+	}
+	data.ContentRange = fmt.Sprintf("bytes %d-%d/%d", start, end, size)
+	data.ContentLength = int64(end - start)
+	return
 }
