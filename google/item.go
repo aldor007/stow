@@ -6,13 +6,9 @@ import (
 	"net/url"
 	"time"
 
-<<<<<<< HEAD
-	"github.com/pkg/errors"
-	storage "google.golang.org/api/storage/v1"
-	"github.com/aldor007/stow"
-=======
 	"cloud.google.com/go/storage"
->>>>>>> 973a61f346d598a566affb53c4698764a67df164
+	"github.com/aldor007/stow"
+	"errors"
 )
 
 type Item struct {

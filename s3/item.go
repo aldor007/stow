@@ -113,7 +113,7 @@ func (i *item) OpenParams(p map[string]interface{}) (io.ReadCloser, error) {
 		return nil, errors.Wrap(err, "Open, getting the object")
 	}
 	if cr := response.ContentRange; cr != nil {
-		i.rangeData = stow.ContentRangeData{*cr, *response.ContentLength}
+		i.rangeData = stow.ContentRangeData{ContentRange: *cr, ContentLength: *response.ContentLength}
 	}
 
 	return response.Body, nil
@@ -228,6 +228,11 @@ func (i *item) OpenRange(start, end uint64) (io.ReadCloser, error) {
 	response, err := i.client.GetObject(params)
 	if err != nil {
 		return nil, errors.Wrap(err, "Open, getting the object")
+
 	}
+	if cr := response.ContentRange; cr != nil {
+		i.rangeData = stow.ContentRangeData{ContentRange: *cr, ContentLength: *response.ContentLength}
+	}
+
 	return response.Body, nil
 }

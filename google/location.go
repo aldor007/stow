@@ -6,16 +6,11 @@ import (
 	"net/url"
 	"strings"
 
-<<<<<<< HEAD
-	"github.com/aldor007/stow"
-	storage "google.golang.org/api/storage/v1"
-=======
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 
-	"github.com/graymeta/stow"
->>>>>>> 973a61f346d598a566affb53c4698764a67df164
+	"github.com/aldor007/stow"
 )
 
 // A Location contains a client + the configurations used to create the client.

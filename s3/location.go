@@ -254,7 +254,7 @@ func (l *location) ItemByURL(url *url.URL) (stow.Item, error) {
 	}
 
 	// url looks like this: s3://<containerName>/<itemName>
-	// example: s3://graymeta-demo/DPtest.txt
+	// example: s3://aldor007-demo/DPtest.txt
 	containerName := url.Host
 	itemName := strings.TrimPrefix(url.Path, "/")
 

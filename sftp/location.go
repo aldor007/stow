@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/graymeta/stow"
+	"github.com/aldor007/stow"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
@@ -163,4 +163,9 @@ func (l *location) ItemByURL(u *url.URL) (stow.Item, error) {
 	}
 
 	return i, nil
+}
+
+// ItemByURL retrieves a stow.Item by parsing the URL.
+func (l *location) HasRanges() bool {
+	return false
 }

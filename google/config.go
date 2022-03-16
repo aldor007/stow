@@ -6,19 +6,11 @@ import (
 	"net/url"
 	"strings"
 
-<<<<<<< HEAD
-	"github.com/aldor007/stow"
-	"golang.org/x/net/context"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	storage "google.golang.org/api/storage/v1"
-=======
 	"cloud.google.com/go/storage"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 
-	"github.com/graymeta/stow"
->>>>>>> 973a61f346d598a566affb53c4698764a67df164
+	"github.com/aldor007/stow"
 )
 
 // Kind represents the name of the location/storage type.

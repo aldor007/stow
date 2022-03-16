@@ -84,14 +84,6 @@ func (i *item) Open() (io.ReadCloser, error) {
 	return response.Body, err
 }
 
-func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
-	return i.Open()
-}
-
-func (i *item) ContentRange() (stow.ContentRangeData, error) {
-	return stow.ContentRangeData{}, errors.New("not implemented")
-}
-
 // LastMod returns the last modified date of the item. The response of an item that is PUT
 // does not contain this field. Solution? Detect when the LastModified field (a *time.Time)
 // is nil, then do a manual request for it via the Item() method of the container which

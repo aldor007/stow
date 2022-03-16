@@ -7,14 +7,9 @@ import (
 	"testing"
 
 	"github.com/cheekybits/is"
-<<<<<<< HEAD
+
 	"github.com/aldor007/stow"
 	"github.com/aldor007/stow/test"
-=======
-
-	"github.com/graymeta/stow"
-	"github.com/graymeta/stow/test"
->>>>>>> 973a61f346d598a566affb53c4698764a67df164
 )
 
 func TestStow(t *testing.T) {

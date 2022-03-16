@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/graymeta/stow"
-	"github.com/graymeta/stow/test"
+	"github.com/aldor007/stow"
+	"github.com/aldor007/stow/test"
 	"github.com/stretchr/testify/require"
 )
 

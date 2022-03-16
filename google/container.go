@@ -4,15 +4,11 @@ import (
 	"context"
 	"io"
 
-<<<<<<< HEAD
-	"github.com/aldor007/stow"
-=======
 	"cloud.google.com/go/storage"
->>>>>>> 973a61f346d598a566affb53c4698764a67df164
 	"github.com/pkg/errors"
 	"google.golang.org/api/iterator"
 
-	"github.com/graymeta/stow"
+	"github.com/aldor007/stow"
 )
 
 type Container struct {

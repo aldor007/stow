@@ -53,6 +53,9 @@ const (
 	// Its default value is "false", to enable set to "true".
 	// This feature is useful for s3-compatible blob stores -- ie minio.
 	ConfigV2Signing = "v2_signing"
+
+	// ConfigHTTPTracing enable verbose logs for http requests
+	ConfigHTTPTracing = "false"
 )
 
 

@@ -125,9 +125,13 @@ func (c *container) RemoveItem(id string) error {
 func (c *container) Put(name string, r io.Reader, size int64, metadata map[string]interface{}) (stow.Item, error) {
 	// Convert map[string]interface{} to map[string]*string
 	mdPrepped, s3Data, err := prepMetadata(metadata)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create or update item, preparing metadata")
+	}
 
+	uploader := s3manager.NewUploaderWithClient(c.client)
 	// Perform an upload.
-	result, err := uploader.Upload(&s3manager.UploadInput{
+	_, err = uploader.Upload(&s3manager.UploadInput{
 		Bucket:             aws.String(c.name),
 		Key:                aws.String(name),
 		Body:               r,
@@ -139,14 +143,6 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 		StorageClass:       s3Data.storageClass,
 		ACL:                s3Data.cannedAcl,
 		Tagging:            s3Data.tags,
-	})
-
-	uploader := s3manager.NewUploaderWithClient(c.client)
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket:   aws.String(c.name), // Required
-		Key:      aws.String(name),   // Required
-		Body:     r,
-		Metadata: mdPrepped, // map[string]*string
 	})
 
 	if err != nil {
@@ -161,14 +157,21 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 		etag = cleanEtag(*i.ETag)
 	}
 
+// Some fields are empty because this information isn't included in the response.
+	// May have to involve sending a request if we want more specific information.
+	// Keeping it simple for now.
+	// s3.Object info: https://github.com/aws/aws-sdk-go/blob/master/service/s3/api.go#L7092-L7107
+	// Response: https://github.com/aws/aws-sdk-go/blob/master/service/s3/api.go#L8193-L8227
 	newItem := &item{
 		container: c,
 		client:    c.client,
 		properties: properties{
-			ETag: &result.UploadID,
+			ETag: &etag,
 			Key:  &name,
-			// Owner        *s3.Owner
-			// StorageClass *string
+			Size: &size,
+			//LastModified *time.Time
+			//Owner        *s3.Owner
+			//StorageClass *string
 		},
 	}
 	switch file := r.(type) {

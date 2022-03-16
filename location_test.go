@@ -52,3 +52,7 @@ func (l *testLocation) ItemByURL(u *url.URL) (stow.Item, error) {
 func (l *testLocation) ContainerByURL(u *url.URL) (stow.Container, error) {
 	return nil, nil
 }
+
+func (l *testLocation) HasRanges() bool {
+	return false
+}

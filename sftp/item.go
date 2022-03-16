@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/graymeta/stow/local"
+	"github.com/aldor007/stow/local"
 )
 
 type item struct {
@@ -84,4 +84,8 @@ func getFileMetadata(info os.FileInfo) map[string]interface{} {
 		local.MetadataPerm:  info.Mode().String(),
 		local.MetadataSize:  info.Size(),
 	}
+}
+
+func (i *item) HasRanges() bool {
+	return false
 }
