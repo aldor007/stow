@@ -123,8 +123,6 @@ func (c *container) RemoveItem(id string) error {
 // content, and the size of the file. Many more attributes can be given to the
 // file, including metadata. Keeping it simple for now.
 func (c *container) Put(name string, r io.Reader, size int64, metadata map[string]interface{}) (stow.Item, error) {
-	uploader := s3manager.NewUploaderWithClient(c.client)
-
 	// Convert map[string]interface{} to map[string]*string
 	mdPrepped, s3Data, err := prepMetadata(metadata)
 
@@ -143,8 +141,24 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 		Tagging:            s3Data.tags,
 	})
 
+	uploader := s3manager.NewUploaderWithClient(c.client)
+	_, err = uploader.Upload(&s3manager.UploadInput{
+		Bucket:   aws.String(c.name), // Required
+		Key:      aws.String(name),   // Required
+		Body:     r,
+		Metadata: mdPrepped, // map[string]*string
+	})
+
 	if err != nil {
 		return nil, errors.Wrap(err, "Put, uploading object")
+	}
+	i, err := c.client.HeadObject(&s3.HeadObjectInput{
+		Key:    aws.String(name),
+		Bucket: aws.String(c.name),
+	})
+	var etag string
+	if i.ETag != nil && err == nil {
+		etag = cleanEtag(*i.ETag)
 	}
 
 	newItem := &item{

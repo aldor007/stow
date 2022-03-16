@@ -24,7 +24,10 @@ type item struct {
 	infoErr  error
 }
 
-var _ stow.Item = (*item)(nil)
+var (
+	_ stow.Item       = (*item)(nil)
+	_ stow.ItemRanger = (*item)(nil)
+)
 
 // ID returns this item's ID
 func (i *item) ID() string {
@@ -68,12 +71,14 @@ func (i *item) Open() (io.ReadCloser, error) {
 	return r, err
 }
 
-func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
-	return i.Open()
-}
-
-func (i *item) ContentRange() (stow.ContentRangeData, error) {
-	return stow.ContentRangeData{}, errors.New("not implemented")
+// OpenRange opens the item for reading starting at byte start and ending
+// at byte end.
+func (i *item) OpenRange(start, end uint64) (io.ReadCloser, error) {
+	_, r, err := i.bucket.DownloadFileRangeByName(
+		i.name,
+		&backblaze.FileRange{Start: int64(start), End: int64(end)},
+	)
+	return r, err
 }
 
 // ETag returns an etag for an item. In this implementation we use the file's last modified timestamp

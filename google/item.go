@@ -1,20 +1,23 @@
 package google
 
 import (
+	"context"
 	"io"
 	"net/url"
-
-	//	"strings"
 	"time"
 
+<<<<<<< HEAD
 	"github.com/pkg/errors"
 	storage "google.golang.org/api/storage/v1"
 	"github.com/aldor007/stow"
+=======
+	"cloud.google.com/go/storage"
+>>>>>>> 973a61f346d598a566affb53c4698764a67df164
 )
 
 type Item struct {
 	container    *Container       // Container information is required by a few methods.
-	client       *storage.Service // A client is needed to make requests.
+	client       *storage.Client  // A client is needed to make requests.
 	name         string
 	hash         string
 	etag         string
@@ -22,7 +25,8 @@ type Item struct {
 	url          *url.URL
 	lastModified time.Time
 	metadata     map[string]interface{}
-	object       *storage.Object
+	object       *storage.ObjectAttrs
+	ctx          context.Context
 }
 
 // ID returns a string value that represents the name of a file.
@@ -47,12 +51,14 @@ func (i *Item) URL() *url.URL {
 
 // Open returns an io.ReadCloser to the object. Useful for downloading/streaming the object.
 func (i *Item) Open() (io.ReadCloser, error) {
-	res, err := i.client.Objects.Get(i.container.name, i.name).Download()
-	if err != nil {
-		return nil, err
-	}
+	obj := i.container.Bucket().Object(i.name)
+	return obj.NewReader(i.ctx)
+}
 
-	return res.Body, nil
+// OpenRange returns an io.Reader to the object for a specific byte range
+func (i *Item) OpenRange(start, end uint64) (io.ReadCloser, error) {
+	obj := i.container.Bucket().Object(i.name)
+	return obj.NewRangeReader(i.ctx, int64(start), int64(end - start) + 1)
 }
 
 func (i *Item) ContentRange() (stow.ContentRangeData, error) {
@@ -69,7 +75,6 @@ func (i *Item) LastMod() (time.Time, error) {
 }
 
 // Metadata returns a nil map and no error.
-// TODO: Implement this.
 func (i *Item) Metadata() (map[string]interface{}, error) {
 	return i.metadata, nil
 }
@@ -80,7 +85,7 @@ func (i *Item) ETag() (string, error) {
 }
 
 // Object returns the Google Storage Object
-func (i *Item) StorageObject() *storage.Object {
+func (i *Item) StorageObject() *storage.ObjectAttrs {
 	return i.object
 }
 
