@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"fmt"
 )
+var _ stow.Item = (*item)(nil)
 
 // The item struct contains an id (also the name of the file/S3 Object/Item),
 // a container which it belongs to (s3 Bucket), a client, and a URL. The last
@@ -145,4 +146,12 @@ func (i *item) getInfo() (stow.Item, error) {
 		return nil, err
 	}
 	return itemInfo, nil
+}
+
+func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (i *item) ContentRange() (stow.ContentRangeData, error) {
+	return stow.ContentRangeData{}, errors.New("not implemented")
 }

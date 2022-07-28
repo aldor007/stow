@@ -11,6 +11,8 @@ import (
 	"github.com/aldor007/stow"
 )
 
+var _ stow.Item = (*item)(nil)
+
 // The item struct contains an id (also the name of the file/S3 Object/Item),
 // a container which it belongs to (s3 Bucket), a client, and a URL. The last
 // field, properties, contains information about the item, including the ETag,

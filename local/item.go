@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/aldor007/stow"
 )
+var _ stow.Item = (*item)(nil)
 
 // Metadata constants describe the metadata available
 // for a local Item.

@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/kothar/go-backblaze.v0"
 )
+var _ stow.Item = (*item)(nil)
 
 type item struct {
 	id           string
@@ -125,4 +126,7 @@ func (i *item) ensureInfo() error {
 		})
 	}
 	return i.infoErr
+}
+func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
+	return nil, errors.New("not implemented")
 }

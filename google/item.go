@@ -10,6 +10,7 @@ import (
 	"github.com/aldor007/stow"
 	"errors"
 )
+var _ stow.Item = (*Item)(nil)
 
 type Item struct {
 	container    *Container       // Container information is required by a few methods.

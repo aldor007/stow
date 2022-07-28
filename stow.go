@@ -155,6 +155,9 @@ type Item interface {
 	// Metadata gets a map of key/values that belong
 	// to this Item.
 	Metadata() (map[string]interface{}, error)
+	// ContentRange will have value on range response
+	ContentRange() (ContentRangeData, error)
+    OpenParams(_ map[string]interface{}) (io.ReadCloser, error)
 }
 
 type ContentRangeData struct {
