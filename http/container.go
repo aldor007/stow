@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"github.com/aldor007/stow"
 	"github.com/pkg/errors"
 	"io"
@@ -46,6 +47,12 @@ func (c *container) RemoveItem(id string) error {
 func (c *container) Put(name string, r io.Reader, size int64, metadata map[string]interface{}) (stow.Item, error) {
 	return nil, errors.New("not implemented")
 }
+
+func (c *container) PreSignRequest(ctx context.Context, clientMethod stow.ClientMethod, id string,
+	params stow.PresignRequestParams) (url string, err error) {
+	return "", errors.New("not implemented")
+}
+
 
 // A request to retrieve a single item includes information that is more specific than
 // a PUT. Instead of doing a request within the PUT, make this method available so that the

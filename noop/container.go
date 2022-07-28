@@ -1,6 +1,7 @@
 package noop
 
 import (
+	"context"
 	"github.com/aldor007/stow"
 	"github.com/pkg/errors"
 	"io"
@@ -30,6 +31,12 @@ func (c *container) Item(id string) (stow.Item, error) {
 // the prefix argument. The 'cursor' variable facilitates pagination.
 func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string, error) {
 	return nil, "", errors.New("not implemented")
+}
+
+
+func (c *container) PreSignRequest(ctx context.Context, clientMethod stow.ClientMethod, id string,
+	params stow.PresignRequestParams) (url string, err error) {
+	return "", errors.New("not implemented")
 }
 
 func (c *container) RemoveItem(id string) error {

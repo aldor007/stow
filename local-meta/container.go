@@ -1,6 +1,7 @@
 package local_meta
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/url"
@@ -156,6 +157,12 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 	}
 	return items, cursor, nil
 }
+
+func (c *container) PreSignRequest(ctx context.Context, clientMethod stow.ClientMethod, id string,
+	params stow.PresignRequestParams) (url string, err error) {
+	return "", errors.New("not implemented")
+}
+
 
 func (c *container) Item(id string) (stow.Item, error) {
 	path := filepath.Join(c.path, id)
