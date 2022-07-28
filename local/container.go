@@ -14,12 +14,13 @@ import (
 )
 
 type container struct {
-	name string
-	path string
+	name          string
+	path          string
+	allowMetadata bool
 }
 
 func (c *container) ID() string {
-	return c.path
+	return c.name
 }
 
 func (c *container) Name() string {
@@ -42,6 +43,7 @@ func (c *container) CreateItem(name string) (stow.Item, io.WriteCloser, error) {
 	path := filepath.Join(c.path, filepath.FromSlash(name))
 	item := &item{
 		path:          path,
+		name:          name,
 		contPrefixLen: len(c.path) + 1,
 	}
 	f, err := os.Create(path)
@@ -52,17 +54,18 @@ func (c *container) CreateItem(name string) (stow.Item, io.WriteCloser, error) {
 }
 
 func (c *container) RemoveItem(id string) error {
-	return os.Remove(id)
+	return os.Remove(filepath.Join(c.path, id))
 }
 
 func (c *container) Put(name string, r io.Reader, size int64, metadata map[string]interface{}) (stow.Item, error) {
-	if len(metadata) > 0 {
+	if c.allowMetadata == false && len(metadata) > 0 {
 		return nil, stow.NotSupported("metadata")
 	}
 
 	path := filepath.Join(c.path, filepath.FromSlash(name))
 	item := &item{
 		path:          path,
+		name:          name,
 		contPrefixLen: len(c.path) + 1,
 	}
 	err := os.MkdirAll(filepath.Dir(path), 0777)
@@ -110,11 +113,10 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 	} else if len(files) <= count {
 		cursor = "" // end
 	}
+
+	files = files[1:]
 	var items []stow.Item
 	for _, f := range files {
-		if f.IsDir() {
-			continue
-		}
 		path, err := filepath.Abs(filepath.Join(c.path, f.Name()))
 		if err != nil {
 			return nil, "", err
@@ -124,6 +126,7 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 		}
 		item := &item{
 			path:          path,
+			name:          f.Name(),
 			contPrefixLen: len(c.path) + 1,
 		}
 		items = append(items, item)
@@ -132,7 +135,7 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 }
 
 func (c *container) Item(id string) (stow.Item, error) {
-	path := id
+	path := filepath.Join(c.path, id)
 	if !filepath.IsAbs(id) {
 		path = filepath.Join(c.path, filepath.FromSlash(id))
 	}
@@ -149,6 +152,7 @@ func (c *container) Item(id string) (stow.Item, error) {
 	}
 	item := &item{
 		path:          path,
+		name:          id,
 		contPrefixLen: len(c.path) + 1,
 	}
 	return item, nil
@@ -162,12 +166,13 @@ func flatdirs(path string) ([]os.FileInfo, error) {
 		if err != nil {
 			return err
 		}
-		if info.IsDir() {
-			return nil
-		}
 		flatname, err := filepath.Rel(path, p)
 		if err != nil {
 			return err
+		}
+
+		if info.IsDir() {
+			flatname = flatname + "/"
 		}
 		list = append(list, fileinfo{
 			FileInfo: info,

@@ -18,4 +18,8 @@ RUN wget -q -O /usr/local/${gofile} ${gourl} \
   && mkdir /usr/local/go \
   && tar -xzf /usr/local/${gofile} -C /usr/local/go --strip 1
 
-CMD cd /mnt/src/github.com/graymeta/stow && GO111MODULE=on GOPATH=/mnt PATH=/usr/local/go/bin:$GOPATH/bin:$PATH make test
+<<<<<<< HEAD
+CMD cd /mnt/src/github.com/aldor007/stow && GOPATH=/mnt PATH=/usr/local/go/bin:$GOPATH/bin:$PATH make test
+=======
+CMD cd /mnt/src/github.com/aldor007/stow && GO111MODULE=on GOPATH=/mnt PATH=/usr/local/go/bin:$GOPATH/bin:$PATH make test
+>>>>>>> 973a61f346d598a566affb53c4698764a67df164

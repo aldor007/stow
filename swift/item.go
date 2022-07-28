@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/aldor007/stow"
 	"github.com/ncw/swift"
 )
@@ -53,6 +54,14 @@ func (i *item) Size() (int64, error) {
 func (i *item) Open() (io.ReadCloser, error) {
 	r, _, err := i.client.ObjectOpen(i.container.id, i.id, false, nil)
 	return r, err
+}
+
+func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
+	return i.Open()
+}
+
+func (i *item) ContentRange() (stow.ContentRangeData, error) {
+	return stow.ContentRangeData{}, errors.New("not implemented")
 }
 
 func (i *item) ETag() (string, error) {

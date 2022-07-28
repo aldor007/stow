@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aldor007/stow"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aldor007/stow"
 	"github.com/pkg/errors"
 )
 
@@ -33,6 +33,7 @@ type item struct {
 	tags       map[string]interface{}
 	tagsOnce   sync.Once
 	tagsErr    error
+	rangeData  stow.ContentRangeData
 }
 
 type properties struct {
@@ -93,6 +94,36 @@ func (i *item) Open() (io.ReadCloser, error) {
 		return nil, errors.Wrap(err, "Open, getting the object")
 	}
 	return response.Body, nil
+}
+
+func (i *item) OpenParams(p map[string]interface{}) (io.ReadCloser, error) {
+	var strRange string
+	objetRange, ok := p["range"]
+	if ok {
+		strRange = objetRange.(string)
+	}
+	params := &s3.GetObjectInput{
+		Bucket: aws.String(i.container.Name()),
+		Key:    aws.String(i.ID()),
+		Range:  aws.String(strRange),
+	}
+
+	response, err := i.client.GetObject(params)
+	if err != nil {
+		return nil, errors.Wrap(err, "Open, getting the object")
+	}
+	if cr := response.ContentRange; cr != nil {
+		i.rangeData = stow.ContentRangeData{ContentRange: *cr, ContentLength: *response.ContentLength}
+	}
+
+	return response.Body, nil
+}
+
+func (i *item) ContentRange() (stow.ContentRangeData, error) {
+	if i.rangeData.ContentRange == "" {
+		return stow.ContentRangeData{}, errors.New("response is not a range")
+	}
+	return i.rangeData, nil
 }
 
 // LastMod returns the last modified date of the item. The response of an item that is PUT
@@ -197,6 +228,11 @@ func (i *item) OpenRange(start, end uint64) (io.ReadCloser, error) {
 	response, err := i.client.GetObject(params)
 	if err != nil {
 		return nil, errors.Wrap(err, "Open, getting the object")
+
 	}
+	if cr := response.ContentRange; cr != nil {
+		i.rangeData = stow.ContentRangeData{ContentRange: *cr, ContentLength: *response.ContentLength}
+	}
+
 	return response.Body, nil
 }

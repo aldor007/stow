@@ -21,6 +21,10 @@ type location struct {
 	client         *s3.S3
 }
 
+func (l *location) HasRanges() bool {
+	return true
+}
+
 // CreateContainer creates a new container, in this case an S3 bucket.
 // The bare minimum needed is a container name, but there are many other
 // options that can be provided.
@@ -249,7 +253,7 @@ func (l *location) ItemByURL(url *url.URL) (stow.Item, error) {
 	}
 
 	// url looks like this: s3://<containerName>/<itemName>
-	// example: s3://graymeta-demo/DPtest.txt
+	// example: s3://aldor007-demo/DPtest.txt
 	containerName := url.Host
 	itemName := strings.TrimPrefix(url.Path, "/")
 

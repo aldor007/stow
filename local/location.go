@@ -1,12 +1,13 @@
 package local
 
 import (
-	"errors"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/aldor007/stow"
+	"github.com/pkg/errors"
 )
 
 type location struct {
@@ -18,12 +19,43 @@ func (l *location) Close() error {
 	return nil // nothing to close
 }
 
+func (l *location) HasRanges() bool {
+	// TODO add implementation and change to true
+	return false
+}
+
 func (l *location) ItemByURL(u *url.URL) (stow.Item, error) {
-	dir, _ := filepath.Split(u.Path)
-	return &item{
-		path:          u.Path,
-		contPrefixLen: len(dir),
-	}, nil
+	rootPath, ok := l.config.Config(ConfigKeyPath)
+	if !ok {
+		return nil, errors.New("missing " + ConfigKeyPath + " configuration")
+	}
+
+	cleanRootPath := filepath.Clean(rootPath)
+	rootPathLen := len(cleanRootPath)
+	if len(u.Path) < rootPathLen {
+		return nil, errors.New("Url is too short")
+	}
+
+	rootIndex := strings.Index(u.Path, cleanRootPath)
+	path := u.Path[rootIndex + rootPathLen + 1:]
+
+	urlParts := strings.Split(path, "/")
+	if len(urlParts) < 2 {
+		return nil, errors.New("parsing ItemByURL URL")
+	}
+	containerName := urlParts[0]
+	itemName := strings.Join(urlParts[1:], "/")
+
+	c, err := l.Container(containerName)
+	if err != nil {
+		return nil, errors.Wrapf(err, "ItemByURL, getting container by the name %s", containerName)
+	}
+
+	i, err := c.Item(itemName)
+	if err != nil {
+		return nil, errors.Wrapf(err, "ItemByURL, getting item by object name %s", itemName)
+	}
+	return i, nil
 }
 
 func (l *location) RemoveContainer(id string) error {
@@ -43,9 +75,17 @@ func (l *location) CreateContainer(name string) (stow.Container, error) {
 	if err != nil {
 		return nil, err
 	}
+	allowMetaS, ok := l.config.Config(ConfigKeyMetaAllow)
+	var allowMeta bool = false
+	if ok == true && allowMetaS == "true" {
+		allowMeta = true
+	}
+
 	return &container{
 		name: name,
 		path: abspath,
+		allowMetadata: allowMeta,
+
 	}, nil
 }
 
@@ -60,11 +100,17 @@ func (l *location) Containers(prefix string, cursor string, count int) ([]stow.C
 	}
 
 	var cs []stow.Container
+	allowMetaS, ok := l.config.Config(ConfigKeyMetaAllow)
+	var allowMeta bool = false
+	if ok == true && allowMetaS == "true" {
+		allowMeta = true
+	}
 
 	if prefix == stow.NoPrefix && cursor == stow.CursorStart {
 		allContainer := container{
 			name: "All",
 			path: path,
+			allowMetadata: allowMeta,
 		}
 
 		cs = append(cs, &allContainer)
@@ -106,14 +152,15 @@ func (l *location) Container(id string) (stow.Container, error) {
 	if !ok {
 		return nil, errors.New("missing " + ConfigKeyPath + " configuration")
 	}
-	var fullPath string
-	if filepath.IsAbs(id) {
-		fullPath = id
-	} else {
-		fullPath = filepath.Join(path, id)
-	}
+	containers, err := l.filesToContainers(path, filepath.Join(path, id))
+	//var fullPath string
+	//
+	//if filepath.IsAbs(id) {
+	//	fullPath = id
+	//} else {
+	//	fullPath = filepath.Join(path, id)
+	//}
 
-	containers, err := l.filesToContainers(path, fullPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, stow.ErrNotFound

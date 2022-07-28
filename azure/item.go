@@ -20,6 +20,7 @@ type item struct {
 	metadata   map[string]interface{}
 	infoOnce   sync.Once
 	infoErr    error
+	rangeData  stow.ContentRangeData
 }
 
 var (
@@ -48,6 +49,14 @@ func (i *item) Size() (int64, error) {
 
 func (i *item) Open() (io.ReadCloser, error) {
 	return i.client.GetContainerReference(i.container.id).GetBlobReference(i.id).Get(nil)
+}
+
+func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
+	return i.Open()
+}
+
+func (i *item) ContentRange() (stow.ContentRangeData, error) {
+	return stow.ContentRangeData{}, errors.New("not implemented")
 }
 
 func (i *item) ETag() (string, error) {
@@ -106,5 +115,6 @@ func (i *item) OpenRange(start, end uint64) (io.ReadCloser, error) {
 			End:   end,
 		},
 	}
+
 	return i.client.GetContainerReference(i.container.id).GetBlobReference(i.id).GetRange(opts)
 }

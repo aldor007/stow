@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/aldor007/stow"
 	"github.com/ncw/swift"
 )
@@ -57,11 +58,19 @@ func (i *item) Size() (int64, error) {
 func (i *item) Open() (io.ReadCloser, error) {
 	r, _, err := i.client.ObjectOpen(i.container.id, i.id, false, nil)
 	var res io.ReadCloser = r
-	// FIXME: this is a workaround to issue https://github.com/graymeta/stow/issues/120
+	// FIXME: this is a workaround to issue https://github.com/aldor007/stow/issues/120
 	if s, ok := res.(readSeekCloser); ok {
 		res = &fixReadSeekCloser{readSeekCloser: s, item: i}
 	}
 	return res, err
+}
+
+func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
+	return i.Open()
+}
+
+func (i *item) ContentRange() (stow.ContentRangeData, error) {
+	return stow.ContentRangeData{}, errors.New("not implemented")
 }
 
 type readSeekCloser interface {

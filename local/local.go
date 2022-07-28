@@ -12,6 +12,7 @@ import (
 // local storage.
 const (
 	ConfigKeyPath = "path"
+	ConfigKeyMetaAllow = "allowMetadata"
 )
 
 // Kind is the kind of Location this package provides.

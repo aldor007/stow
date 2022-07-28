@@ -164,3 +164,8 @@ func (l *location) ItemByURL(u *url.URL) (stow.Item, error) {
 
 	return i, nil
 }
+
+// ItemByURL retrieves a stow.Item by parsing the URL.
+func (l *location) HasRanges() bool {
+	return false
+}

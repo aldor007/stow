@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/aldor007/stow"
+	"errors"
 )
 
 type Item struct {
@@ -53,6 +55,14 @@ func (i *Item) Open() (io.ReadCloser, error) {
 func (i *Item) OpenRange(start, end uint64) (io.ReadCloser, error) {
 	obj := i.container.Bucket().Object(i.name)
 	return obj.NewRangeReader(i.ctx, int64(start), int64(end - start) + 1)
+}
+
+func (i *Item) ContentRange() (stow.ContentRangeData, error) {
+	return stow.ContentRangeData{}, errors.New("not implemented")
+}
+
+func (i *Item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
+	return i.Open()
 }
 
 // LastMod returns the last modified date of the item.

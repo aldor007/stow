@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+	"github.com/pkg/errors"
+	"github.com/aldor007/stow"
 )
 
 // Metadata constants describe the metadata available
@@ -27,16 +29,17 @@ const (
 )
 
 type item struct {
-	path          string
-	contPrefixLen int
+	path          string    // absolute path to file
+	name          string    // file name
 	infoOnce      sync.Once // protects info
 	info          os.FileInfo
 	infoErr       error
 	metadata      map[string]interface{}
+	contPrefixLen int
 }
 
 func (i *item) ID() string {
-	return i.path
+	return i.name
 }
 
 func (i *item) Name() string {
@@ -69,6 +72,14 @@ func (i *item) ETag() (string, error) {
 // Open opens the file for reading.
 func (i *item) Open() (io.ReadCloser, error) {
 	return os.Open(i.path)
+}
+
+func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
+	return i.Open()
+}
+
+func (i *item) ContentRange() (stow.ContentRangeData, error) {
+	return stow.ContentRangeData{}, errors.New("not implemented")
 }
 
 func (i *item) LastMod() (time.Time, error) {

@@ -3,6 +3,7 @@ package stow
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/url"
 	"sync"
@@ -89,6 +90,8 @@ type Location interface {
 	// ItemByURL gets an Item at this location with the
 	// specified URL.
 	ItemByURL(url *url.URL) (Item, error)
+	// HasRange returns true when location can returns HTTP Range responses
+	HasRanges() bool
 }
 
 type PresignRequestParams struct {
@@ -154,11 +157,18 @@ type Item interface {
 	Metadata() (map[string]interface{}, error)
 }
 
+type ContentRangeData struct {
+	ContentRange string
+	ContentLength int64
+}
+
 // ItemRanger represents an item that can be partially downloaded.
 type ItemRanger interface {
 	// OpenRange opens the item for reading starting at byte start and ending
 	// at byte end.
 	OpenRange(start, end uint64) (io.ReadCloser, error)
+	// ContentRange will have value on range response
+	ContentRange() (ContentRangeData, error)
 }
 
 // Taggable represents a taggable Item
@@ -286,4 +296,18 @@ func IsNotSupported(err error) bool {
 // as not supported by this implementation.
 func NotSupported(feature string) error {
 	return errNotSupported(feature)
+}
+
+func GetContentRange(item Item, start, end uint64) (data ContentRangeData, err error) {
+	size, err := item.Size()
+	if err != nil {
+		return
+	}
+	
+	if int64(end) > size {
+		end = uint64(size)
+	}
+	data.ContentRange = fmt.Sprintf("bytes %d-%d/%d", start, end, size)
+	data.ContentLength = int64(end - start)
+	return
 }

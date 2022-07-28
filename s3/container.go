@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/aws/request"
 
+	"github.com/aldor007/stow"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/aldor007/stow"
 	"github.com/pkg/errors"
+	"os"
 )
 
 // Amazon S3 bucket contains a creation date and a name.
@@ -25,6 +27,17 @@ type container struct {
 	// region describes the AWS Availability Zone of the S3 Bucket.
 	region         string
 	customEndpoint string
+	lock           sync.Mutex
+}
+
+type s3DataType struct {
+	contentType        *string
+	cacheControl       *string
+	contentDisposition *string
+	storageClass       *string
+	contentMd5         *string
+	tags               *string
+	cannedAcl          *string
 }
 
 func (c *container) PreSignRequest(ctx context.Context, clientMethod stow.ClientMethod, id string,
@@ -144,21 +157,29 @@ func (c *container) RemoveItem(id string) error {
 // file, including metadata. Keeping it simple for now.
 func (c *container) Put(name string, r io.Reader, size int64, metadata map[string]interface{}) (stow.Item, error) {
 	// Convert map[string]interface{} to map[string]*string
-	mdPrepped, err := prepMetadata(metadata)
+	mdPrepped, s3Data, err := prepMetadata(metadata)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create or update item, preparing metadata")
 	}
 
 	uploader := s3manager.NewUploaderWithClient(c.client)
+	// Perform an upload.
 	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket:   aws.String(c.name), // Required
-		Key:      aws.String(name),   // Required
-		Body:     r,
-		Metadata: mdPrepped, // map[string]*string
+		Bucket:             aws.String(c.name),
+		Key:                aws.String(name),
+		Body:               r,
+		Metadata:           mdPrepped,
+		ContentType:        s3Data.contentType,
+		CacheControl:       s3Data.cacheControl,
+		ContentDisposition: s3Data.contentDisposition,
+		ContentMD5:         s3Data.contentMd5,
+		StorageClass:       s3Data.storageClass,
+		ACL:                s3Data.cannedAcl,
+		Tagging:            s3Data.tags,
 	})
 
 	if err != nil {
-		return nil, errors.Wrap(err, "PutObject, putting object")
+		return nil, errors.Wrap(err, "Put, uploading object")
 	}
 	i, err := c.client.HeadObject(&s3.HeadObjectInput{
 		Key:    aws.String(name),
@@ -169,7 +190,7 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 		etag = cleanEtag(*i.ETag)
 	}
 
-	// Some fields are empty because this information isn't included in the response.
+// Some fields are empty because this information isn't included in the response.
 	// May have to involve sending a request if we want more specific information.
 	// Keeping it simple for now.
 	// s3.Object info: https://github.com/aws/aws-sdk-go/blob/master/service/s3/api.go#L7092-L7107
@@ -186,7 +207,15 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 			//StorageClass *string
 		},
 	}
-
+	switch file := r.(type) {
+	case *os.File:
+		if st, err := file.Stat(); err == nil && !st.IsDir() {
+			newItem.properties.Size = aws.Int64(st.Size())
+			newItem.properties.LastModified = aws.Time(st.ModTime())
+		}
+	default:
+		newItem.properties.Size = aws.Int64(size)
+	}
 	return newItem, nil
 }
 
@@ -207,7 +236,6 @@ func (c *container) getItem(id string) (*item, error) {
 		Bucket: aws.String(c.name),
 		Key:    aws.String(id),
 	}
-
 	res, err := c.client.HeadObject(params)
 	if err != nil {
 		// stow needs ErrNotFound to pass the test but amazon returns an opaque error
@@ -217,10 +245,35 @@ func (c *container) getItem(id string) (*item, error) {
 		return nil, errors.Wrap(err, "getItem, getting the object")
 	}
 
-	etag := cleanEtag(*res.ETag) // etag string value contains quotations. Remove them.
+	var etag string
+
+	if res.ETag != nil {
+		etag = cleanEtag(*res.ETag) // etag string value contains quotations. Remove them.
+	}
+
 	md, err := parseMetadata(res.Metadata)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to retrieve Item information, parsing metadata")
+	}
+
+	if res.CacheControl != nil {
+		md["cache-control"] = *res.CacheControl
+	}
+
+	if res.ContentDisposition != nil {
+		md["content-disposition"] = *res.ContentDisposition
+	}
+
+	if res.ContentEncoding != nil {
+		md["content-encoding"] = *res.ContentEncoding
+	}
+
+	if res.ContentType != nil {
+		md["content-type"] = *res.ContentType
+	}
+
+	if res.ContentLanguage != nil {
+		md["content-language"] = *res.ContentLanguage
 	}
 
 	i := &item{
@@ -277,17 +330,37 @@ func cleanEtag(etag string) string {
 }
 
 // prepMetadata parses a raw map into the native type required by S3 to set metadata (map[string]*string).
-// TODO: validation for key values. This function also assumes that the value of a key value pair is a string.
-func prepMetadata(md map[string]interface{}) (map[string]*string, error) {
+func prepMetadata(md map[string]interface{}) (map[string]*string, s3DataType, error) {
 	m := make(map[string]*string, len(md))
+	s3Data := s3DataType{}
 	for key, value := range md {
+		key = strings.ToLower(key)
 		strValue, valid := value.(string)
 		if !valid {
-			return nil, errors.Errorf(`value of key '%s' in metadata must be of type string`, key)
+			return nil, s3Data, errors.Errorf(`value of key '%s' in metadata must be of type string`, key)
 		}
-		m[key] = aws.String(strValue)
+		awsValue := aws.String(strValue)
+		switch key {
+		case "cache-control":
+			s3Data.cacheControl = awsValue
+		case "content-type":
+			s3Data.contentType = awsValue
+		case "content-disposition":
+			s3Data.contentDisposition = awsValue
+		case "x-amz-storage-class":
+			s3Data.storageClass = awsValue
+		case "x-amz-tagging":
+			s3Data.tags = awsValue
+		case "content-md5":
+			s3Data.contentMd5 = awsValue
+		case "x-amz-acl":
+			s3Data.cannedAcl = awsValue
+		default:
+			m[key] = awsValue
+		}
+
 	}
-	return m, nil
+	return m, s3Data, nil
 }
 
 // The first letter of a dash separated key value is capitalized, so perform a ToLower on it.

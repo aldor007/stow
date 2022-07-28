@@ -18,6 +18,11 @@ func (l *location) Close() error {
 	return nil // nothing to close
 }
 
+func (l *location) HasRanges() bool {
+	// TODO add implementation and change to true
+	return false
+}
+
 func (l *location) CreateContainer(name string) (stow.Container, error) {
 	err := l.client.ContainerCreate(name, nil)
 	if err != nil {

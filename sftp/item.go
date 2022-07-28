@@ -85,3 +85,7 @@ func getFileMetadata(info os.FileInfo) map[string]interface{} {
 		local.MetadataSize:  info.Size(),
 	}
 }
+
+func (i *item) HasRanges() bool {
+	return false
+}

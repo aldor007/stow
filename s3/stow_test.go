@@ -106,7 +106,7 @@ func TestPrepMetadataSuccess(t *testing.T) {
 		m2[key] = str
 	}
 
-	returnedMap, err := prepMetadata(m2)
+	returnedMap, _, err := prepMetadata(m2)
 	is.NoErr(err)
 
 	if !reflect.DeepEqual(m, returnedMap) {
@@ -121,7 +121,7 @@ func TestPrepMetadataFailureWithNonStringValues(t *testing.T) {
 	m["float"] = 8.9
 	m["number"] = 9
 
-	_, err := prepMetadata(m)
+	_, _, err := prepMetadata(m)
 	is.Err(err)
 }
 
