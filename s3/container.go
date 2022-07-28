@@ -1,11 +1,13 @@
 package s3
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"strings"
 	"sync"
 
-	"os"
+	"github.com/aws/aws-sdk-go/aws/request"
 
 	"github.com/aldor007/stow"
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/pkg/errors"
+	"os"
 )
 
 // Amazon S3 bucket contains a creation date and a name.
@@ -35,6 +38,36 @@ type s3DataType struct {
 	contentMd5         *string
 	tags               *string
 	cannedAcl          *string
+}
+
+func (c *container) PreSignRequest(ctx context.Context, clientMethod stow.ClientMethod, id string,
+	params stow.PresignRequestParams) (url string, err error) {
+
+	var req *request.Request
+	switch clientMethod {
+	case stow.ClientMethodGet:
+		req, _ = c.client.GetObjectRequest(&s3.GetObjectInput{
+			Bucket: aws.String(c.name),
+			Key:    aws.String(id),
+		})
+	case stow.ClientMethodPut:
+		var contentMD5 *string
+		if len(params.ContentMD5) > 0 {
+			contentMD5 = aws.String(params.ContentMD5)
+		}
+
+		req, _ = c.client.PutObjectRequest(&s3.PutObjectInput{
+			Bucket:     aws.String(c.name),
+			Key:        aws.String(id),
+			ContentMD5: contentMD5,
+		})
+	default:
+		return "", fmt.Errorf("unsupported client method [%v]", clientMethod.String())
+	}
+
+	req.SetContext(ctx)
+
+	return req.Presign(params.ExpiresIn)
 }
 
 // ID returns a string value which represents the name of the container.

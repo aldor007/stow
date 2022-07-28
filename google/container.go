@@ -3,6 +3,8 @@ package google
 import (
 	"context"
 	"io"
+	"net/http"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/pkg/errors"
@@ -33,8 +35,26 @@ func (c *Container) Name() string {
 }
 
 // Bucket returns the google bucket attributes
-func (c *Container) Bucket() *storage.BucketHandle{
+func (c *Container) Bucket() *storage.BucketHandle {
 	return c.client.Bucket(c.name)
+}
+
+func (c *Container) PreSignRequest(_ context.Context, clientMethod stow.ClientMethod, id string,
+	params stow.PresignRequestParams) (url string, err error) {
+	if len(params.HttpMethod) == 0 {
+		switch clientMethod {
+		case stow.ClientMethodGet:
+			params.HttpMethod = http.MethodGet
+		case stow.ClientMethodPut:
+			params.HttpMethod = http.MethodPut
+		}
+	}
+
+	return c.Bucket().SignedURL(id, &storage.SignedURLOptions{
+		Method:  params.HttpMethod,
+		Expires: time.Now().Add(params.ExpiresIn),
+		MD5:     params.ContentMD5,
+	})
 }
 
 // Item returns a stow.Item instance of a container based on the
@@ -94,17 +114,25 @@ func (c *Container) Put(name string, r io.Reader, size int64, metadata map[strin
 	}
 
 	w := obj.NewWriter(c.ctx)
+	w.ObjectAttrs.Metadata = merge(w.ObjectAttrs.Metadata, mdPrepped)
 	if _, err := io.Copy(w, r); err != nil {
 		return nil, err
 	}
-	w.Close()
-
-	attr, err := obj.Update(c.ctx, storage.ObjectAttrsToUpdate{Metadata: mdPrepped})
-	if err != nil {
+	if err = w.Close(); err != nil {
 		return nil, err
 	}
 
-	return c.convertToStowItem(attr)
+	return c.convertToStowItem(w.Attrs())
+}
+
+func merge(metadata ...map[string]string) map[string]string {
+	res := map[string]string{}
+	for _, mt := range metadata {
+		for k, v := range mt {
+			res[k] = v
+		}
+	}
+	return res
 }
 
 func (c *Container) convertToStowItem(attr *storage.ObjectAttrs) (stow.Item, error) {

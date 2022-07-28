@@ -6,12 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aldor007/stow"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-
+	"github.com/aldor007/stow"
 	"github.com/pkg/errors"
 )
 
