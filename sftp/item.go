@@ -1,7 +1,9 @@
 package sftp
 
 import (
+	"errors"
 	"fmt"
+	"github.com/aldor007/stow"
 	"io"
 	"net/url"
 	"os"
@@ -88,4 +90,12 @@ func getFileMetadata(info os.FileInfo) map[string]interface{} {
 
 func (i *item) HasRanges() bool {
 	return false
+}
+
+func (i *item) OpenParams(_ map[string]interface{}) (io.ReadCloser, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (i *item) ContentRange() (stow.ContentRangeData, error) {
+	return stow.ContentRangeData{}, errors.New("not implemented")
 }
