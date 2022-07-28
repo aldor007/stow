@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/cheekybits/is"
-	"github.com/flyteorg/stow"
+	"github.com/aldor007/stow"
 )
 
 // All runs a generic suite of tests for Stow storage

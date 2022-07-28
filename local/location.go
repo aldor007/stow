@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/flyteorg/stow"
+	"github.com/aldor007/stow"
 )
 
 type location struct {

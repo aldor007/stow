@@ -7,7 +7,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 
 	az "github.com/Azure/azure-sdk-for-go/storage"
-	"github.com/flyteorg/stow"
+	"github.com/aldor007/stow"
 )
 
 // ConfigAccount and ConfigKey are the supported configuration items for

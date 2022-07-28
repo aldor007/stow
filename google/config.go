@@ -10,7 +10,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 
-	"github.com/flyteorg/stow"
+	"github.com/aldor007/stow"
 )
 
 // Kind represents the name of the location/storage type.

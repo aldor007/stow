@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/cheekybits/is"
-	"github.com/flyteorg/stow"
-	"github.com/flyteorg/stow/test"
+	"github.com/aldor007/stow"
+	"github.com/aldor007/stow/test"
 )
 
 func TestStow(t *testing.T) {

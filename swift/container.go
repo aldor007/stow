@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/flyteorg/stow"
+	"github.com/aldor007/stow"
 	"github.com/ncw/swift"
 )
 

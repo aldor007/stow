@@ -9,7 +9,7 @@ import (
 
 	azblob "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	az "github.com/Azure/azure-sdk-for-go/storage"
-	"github.com/flyteorg/stow"
+	"github.com/aldor007/stow"
 	"github.com/pkg/errors"
 )
 

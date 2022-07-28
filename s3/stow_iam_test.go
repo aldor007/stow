@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/flyteorg/stow"
-	"github.com/flyteorg/stow/test"
+	"github.com/aldor007/stow"
+	"github.com/aldor007/stow/test"
 )
 
 func TestStowIAM(t *testing.T) {

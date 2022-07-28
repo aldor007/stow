@@ -1,4 +1,4 @@
-module github.com/flyteorg/stow
+module github.com/aldor007/stow
 
 go 1.18
 
