@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	cloud.google.com/go/storage v1.22.0
-	github.com/Azure/azure-sdk-for-go v63.4.0+incompatible
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.0
+	github.com/Azure/azure-sdk-for-go v66.0.0+incompatible
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.4.1
 	github.com/Azure/go-autorest/autorest v0.11.28 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
 	github.com/aws/aws-sdk-go v1.44.2
