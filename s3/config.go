@@ -203,7 +203,7 @@ func newS3Client(config stow.Config, region string) (client *s3.Client, endpoint
 	}
 
 	endpoint, ok := config.Config(ConfigEndpoint)
-	if ok {
+	if ok && endpoint != "" {
 		resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 			return aws.Endpoint{
 				PartitionID:       "aws",
@@ -224,12 +224,9 @@ func newS3Client(config stow.Config, region string) (client *s3.Client, endpoint
 
 
 	s3Client := s3.NewFromConfig(awsCfg, func(options *s3.Options) {
-		_, ok := config.Config(ConfigEndpoint)
-		if ok {
+		if endpoint, ok := config.Config(ConfigEndpoint); ok && endpoint != "" {
 			options.UsePathStyle = true
 		}
-
-
 	})
 
 	return s3Client, endpoint, nil
