@@ -6,11 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/smithy-go"
+
 	"github.com/aldor007/stow"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/pkg/errors"
 )
 
@@ -18,7 +19,7 @@ import (
 type location struct {
 	config         stow.Config
 	customEndpoint string
-	client         *s3.S3
+	client         *s3.Client
 }
 
 func (l *location) HasRanges() bool {
@@ -33,7 +34,7 @@ func (l *location) CreateContainer(containerName string) (stow.Container, error)
 		Bucket: aws.String(containerName), // required
 	}
 
-	_, err := l.client.CreateBucket(createBucketParams)
+	_, err := l.client.CreateBucket(context.TODO(), createBucketParams)
 	if err != nil {
 		return nil, errors.Wrap(err, "CreateContainer, creating the bucket")
 	}
@@ -61,7 +62,7 @@ func (l *location) CreateContainer(containerName string) (stow.Container, error)
 func (l *location) Containers(prefix, cursor string, count int) ([]stow.Container, string, error) {
 	// Response returns exported Owner(*s3.Owner) and Bucket(*s3.[]Bucket)
 	var params *s3.ListBucketsInput
-	bucketList, err := l.client.ListBuckets(params)
+	bucketList, err := l.client.ListBuckets(context.TODO(), params)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "Containers, listing the buckets")
 	}
@@ -102,23 +103,29 @@ func (l *location) Containers(prefix, cursor string, count int) ([]stow.Containe
 			continue
 		}
 
-		var err error
 		client := l.client
 		bucketRegion := region
 		if !endpointSet && endpoint == "" {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			bucketRegion, err = s3manager.GetBucketRegionWithClient(ctx, l.client, *bucket.Name)
+			bucketLocation, err := client.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
+				Bucket: bucket.Name,
+			})
 			cancel()
 			if err != nil {
-				if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "NotFound" {
-					// sometimes buckets will still show up int eh ListBuckets results after
-					// being deleted, but will 404 when determining the region. Use this as a
-					// strong signal that the bucket has been deleted.
-					continue
+				var apiError smithy.APIError
+				if errors.As(err, &apiError) {
+					switch apiError.(type) {
+					case *types.NotFound:
+						// sometimes buckets will still show up int eh ListBuckets results after
+						// being deleted, but will 404 when determining the region. Use this as a
+						// strong signal that the bucket has been deleted.
+						continue
+					default:
+						return nil, "", errors.Wrapf(err, "Containers, getting bucket region for: %s", *bucket.Name)
+					}
 				}
-				return nil, "", errors.Wrapf(err, "Containers, getting bucket region for: %s", *bucket.Name)
 			}
-			if regionSet && region != "" && bucketRegion != region {
+			if regionSet && region != "" && string(bucketLocation.LocationConstraint) != region {
 				continue
 			}
 
@@ -157,11 +164,11 @@ func (l *location) Container(id string) (stow.Container, error) {
 	// does not support s3session.GetBucketRegion().
 	if endpoint, endpointSet := l.config.Config(ConfigEndpoint); !endpointSet && endpoint == "" {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		bucketRegion, _ = s3manager.GetBucketRegionWithClient(ctx, l.client, id)
+		bucketLoc, _ := l.client.GetBucketLocation(ctx, &s3.GetBucketLocationInput{Bucket: aws.String(id)})
 		cancel()
 
 		var err error
-		client, _, err = newS3Client(l.config, bucketRegion)
+		client, _, err = newS3Client(l.config, string(bucketLoc.LocationConstraint))
 		if err != nil {
 			return nil, errors.Wrapf(err, "Container, creating new client for region: %s", bucketRegion)
 		}
@@ -182,13 +189,17 @@ func (l *location) Container(id string) (stow.Container, error) {
 		Bucket: aws.String(id),
 	}
 
-	_, err := client.GetBucketLocation(params)
+	_, err := client.GetBucketLocation(context.TODO(), params)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "NoSuchBucket" {
-			return nil, stow.ErrNotFound
+		var apiError smithy.APIError
+		if errors.As(err, &apiError) {
+			switch apiError.(type) {
+			case *types.NotFound:
+				return nil, stow.ErrNotFound
+			default:
+				return nil, errors.Wrap(err, "GetBucketLocation")
+			}
 		}
-
-		return nil, errors.Wrap(err, "GetBucketLocation")
 	}
 
 	return c, nil
@@ -200,7 +211,7 @@ func (l *location) RemoveContainer(id string) error {
 		Bucket: aws.String(id),
 	}
 
-	_, err := l.client.DeleteBucket(params)
+	_, err := l.client.DeleteBucket(context.TODO(), params)
 	if err != nil {
 		return errors.Wrap(err, "RemoveContainer, deleting the bucket")
 	}

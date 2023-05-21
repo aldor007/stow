@@ -3,17 +3,20 @@ package s3
 import (
 	"context"
 	"fmt"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
+
 	"io"
 	"strings"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/aws/request"
+
 
 	"github.com/aldor007/stow"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/pkg/errors"
 	"os"
 )
@@ -23,7 +26,8 @@ type container struct {
 	// name is needed to retrieve items.
 	name string
 	// client is responsible for performing the requests.
-	client *s3.S3
+	client *s3.Client
+	preSignClient  *s3.PresignClient
 	// region describes the AWS Availability Zone of the S3 Bucket.
 	region         string
 	customEndpoint string
@@ -34,40 +38,48 @@ type s3DataType struct {
 	contentType        *string
 	cacheControl       *string
 	contentDisposition *string
-	storageClass       *string
+	storageClass       string
 	contentMd5         *string
 	tags               *string
-	cannedAcl          *string
+	cannedAcl          string
 }
 
-func (c *container) PreSignRequest(ctx context.Context, clientMethod stow.ClientMethod, id string,
-	params stow.PresignRequestParams) (url string, err error) {
+func (c *container) PreSignRequest(ctx context.Context,
+	clientMethod stow.ClientMethod,
+	id string,
+	params stow.PresignRequestParams)(url string, err error) {
 
-	var req *request.Request
+	if c.preSignClient == nil {
+		c.preSignClient = s3.NewPresignClient(c.client)
+	}
+	var req *v4.PresignedHTTPRequest
 	switch clientMethod {
 	case stow.ClientMethodGet:
-		req, _ = c.client.GetObjectRequest(&s3.GetObjectInput{
+		req, _ = c.preSignClient.PresignGetObject(ctx, &s3.GetObjectInput{
 			Bucket: aws.String(c.name),
 			Key:    aws.String(id),
-		})
-	case stow.ClientMethodPut:
+	}, func(opts *s3.PresignOptions) {
+		opts.Expires = params.ExpiresIn
+	})
+case stow.ClientMethodPut:
 		var contentMD5 *string
 		if len(params.ContentMD5) > 0 {
 			contentMD5 = aws.String(params.ContentMD5)
 		}
 
-		req, _ = c.client.PutObjectRequest(&s3.PutObjectInput{
+		req, _ = c.preSignClient.PresignPutObject(ctx, &s3.PutObjectInput{
 			Bucket:     aws.String(c.name),
 			Key:        aws.String(id),
 			ContentMD5: contentMD5,
+		}, func(opts *s3.PresignOptions) {
+			opts.Expires = params.ExpiresIn
 		})
 	default:
 		return "", fmt.Errorf("unsupported client method [%v]", clientMethod.String())
 	}
 
-	req.SetContext(ctx)
 
-	return req.Presign(params.ExpiresIn)
+	return req.URL, nil
 }
 
 // ID returns a string value which represents the name of the container.
@@ -90,16 +102,16 @@ func (c *container) Item(id string) (stow.Item, error) {
 // Items sends a request to retrieve a list of items that are prepended with
 // the prefix argument. The 'cursor' variable facilitates pagination.
 func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string, error) {
-	itemLimit := int64(count)
+	itemLimit := int32(count)
 
 	params := &s3.ListObjectsV2Input{
 		Bucket:     aws.String(c.Name()),
 		StartAfter: &cursor,
-		MaxKeys:    &itemLimit,
+		MaxKeys:    itemLimit,
 		Prefix:     &prefix,
 	}
 
-	response, err := c.client.ListObjectsV2(params)
+	response, err := c.client.ListObjectsV2(context.TODO(), params)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "Items, listing objects")
 	}
@@ -107,7 +119,7 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 	var containerItems []stow.Item
 
 	for _, object := range response.Contents {
-		if *object.StorageClass == "GLACIER" {
+		if object.StorageClass == types.ObjectStorageClassGlacier {
 			continue
 		}
 		etag := cleanEtag(*object.ETag) // Copy etag value and remove the strings.
@@ -121,8 +133,8 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 				Key:          object.Key,
 				LastModified: object.LastModified,
 				Owner:        object.Owner,
-				Size:         object.Size,
-				StorageClass: object.StorageClass,
+				Size:         &object.Size,
+				StorageClass: string(object.StorageClass),
 			},
 		}
 		containerItems = append(containerItems, newItem)
@@ -131,7 +143,7 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 	// Create a marker and determine if the list of items to retrieve is complete.
 	// If not, the last file is the input to the value of after which item to start
 	startAfter := ""
-	if *response.IsTruncated {
+	if response.IsTruncated {
 		startAfter = containerItems[len(containerItems)-1].Name()
 	}
 
@@ -144,7 +156,7 @@ func (c *container) RemoveItem(id string) error {
 		Key:    aws.String(id),
 	}
 
-	_, err := c.client.DeleteObject(params)
+	_, err := c.client.DeleteObject(context.TODO(), params)
 	if err != nil {
 		return errors.Wrapf(err, "RemoveItem, deleting object %+v", params)
 	}
@@ -162,9 +174,9 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 		return nil, errors.Wrap(err, "unable to create or update item, preparing metadata")
 	}
 
-	uploader := s3manager.NewUploaderWithClient(c.client)
+	uploader := manager.NewUploader(c.client)
 	// Perform an upload.
-	_, err = uploader.Upload(&s3manager.UploadInput{
+	_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket:             aws.String(c.name),
 		Key:                aws.String(name),
 		Body:               r,
@@ -173,15 +185,15 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 		CacheControl:       s3Data.cacheControl,
 		ContentDisposition: s3Data.contentDisposition,
 		ContentMD5:         s3Data.contentMd5,
-		StorageClass:       s3Data.storageClass,
-		ACL:                s3Data.cannedAcl,
+		StorageClass:       types.StorageClass(s3Data.storageClass),
+		ACL:                types.ObjectCannedACL(s3Data.cannedAcl),
 		Tagging:            s3Data.tags,
 	})
 
 	if err != nil {
 		return nil, errors.Wrap(err, "Put, uploading object")
 	}
-	i, err := c.client.HeadObject(&s3.HeadObjectInput{
+	i, err := c.client.HeadObject(context.TODO(), &s3.HeadObjectInput{
 		Key:    aws.String(name),
 		Bucket: aws.String(c.name),
 	})
@@ -236,13 +248,19 @@ func (c *container) getItem(id string) (*item, error) {
 		Bucket: aws.String(c.name),
 		Key:    aws.String(id),
 	}
-	res, err := c.client.HeadObject(params)
+	res, err := c.client.HeadObject(context.TODO(), params)
 	if err != nil {
-		// stow needs ErrNotFound to pass the test but amazon returns an opaque error
-		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "NotFound" {
-			return nil, stow.ErrNotFound
+		var apiError smithy.APIError
+		if errors.As(err, &apiError) {
+			switch apiError.(type) {
+			case *types.NotFound:
+				return nil, stow.ErrNotFound
+			default:
+				return nil, fmt.Errorf("getItem, getting the object %s. code %s", apiError.ErrorCode(), apiError.ErrorMessage())
+			}
+
 		}
-		return nil, errors.Wrap(err, "getItem, getting the object")
+		return nil, fmt.Errorf("getItem, getting the object %v",  err)
 	}
 
 	var etag string
@@ -284,8 +302,8 @@ func (c *container) getItem(id string) (*item, error) {
 			Key:          &id,
 			LastModified: res.LastModified,
 			Owner:        nil, // not returned in the response.
-			Size:         res.ContentLength,
-			StorageClass: res.StorageClass,
+			Size:         &res.ContentLength,
+			StorageClass: string(res.StorageClass),
 			Metadata:     md,
 		},
 	}
@@ -330,8 +348,8 @@ func cleanEtag(etag string) string {
 }
 
 // prepMetadata parses a raw map into the native type required by S3 to set metadata (map[string]*string).
-func prepMetadata(md map[string]interface{}) (map[string]*string, s3DataType, error) {
-	m := make(map[string]*string, len(md))
+func prepMetadata(md map[string]interface{}) (map[string]string, s3DataType, error) {
+	m := make(map[string]string, len(md))
 	s3Data := s3DataType{}
 	for key, value := range md {
 		key = strings.ToLower(key)
@@ -348,15 +366,15 @@ func prepMetadata(md map[string]interface{}) (map[string]*string, s3DataType, er
 		case "content-disposition":
 			s3Data.contentDisposition = awsValue
 		case "x-amz-storage-class":
-			s3Data.storageClass = awsValue
+			s3Data.storageClass = strValue
 		case "x-amz-tagging":
 			s3Data.tags = awsValue
 		case "content-md5":
 			s3Data.contentMd5 = awsValue
 		case "x-amz-acl":
-			s3Data.cannedAcl = awsValue
+			s3Data.cannedAcl = strValue
 		default:
-			m[key] = awsValue
+			m[key] = strValue
 		}
 
 	}
@@ -365,11 +383,11 @@ func prepMetadata(md map[string]interface{}) (map[string]*string, s3DataType, er
 
 // The first letter of a dash separated key value is capitalized, so perform a ToLower on it.
 // This Key transformation of returning lowercase is consistent with other locations..
-func parseMetadata(md map[string]*string) (map[string]interface{}, error) {
+func parseMetadata(md map[string]string) (map[string]interface{}, error) {
 	m := make(map[string]interface{}, len(md))
 	for key, value := range md {
 		k := strings.ToLower(key)
-		m[k] = *value
+		m[k] = value
 	}
 	return m, nil
 }

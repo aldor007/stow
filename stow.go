@@ -157,11 +157,11 @@ type Item interface {
 	Metadata() (map[string]interface{}, error)
 	// ContentRange will have value on range response
 	ContentRange() (ContentRangeData, error)
-    OpenParams(_ map[string]interface{}) (io.ReadCloser, error)
+	OpenParams(_ map[string]interface{}) (io.ReadCloser, error)
 }
 
 type ContentRangeData struct {
-	ContentRange string
+	ContentRange  string
 	ContentLength int64
 }
 
@@ -306,7 +306,7 @@ func GetContentRange(item Item, start, end uint64) (data ContentRangeData, err e
 	if err != nil {
 		return
 	}
-	
+
 	if int64(end) > size {
 		end = uint64(size)
 	}

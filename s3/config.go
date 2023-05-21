@@ -1,19 +1,20 @@
 package s3
 
 import (
+	"context"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
 	"time"
+	"errors"
 
 	"github.com/aldor007/stow"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/pkg/errors"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 // Kind represents the name of the location/storage type.
@@ -44,15 +45,6 @@ const (
 	// ConfigEndpoint is optional config value for changing s3 endpoint
 	// used for e.g. minio.io
 	ConfigEndpoint = "endpoint"
-
-	// ConfigDisableSSL is optional config value for disabling SSL support on custom endpoints
-	// Its default value is "false", to disable SSL set it to "true".
-	ConfigDisableSSL = "disable_ssl"
-
-	// ConfigV2Signing is an optional config value for signing requests with the v2 signature.
-	// Its default value is "false", to enable set to "true".
-	// This feature is useful for s3-compatible blob stores -- ie minio.
-	ConfigV2Signing = "v2_signing"
 
 	// ConfigHTTPTracing enable verbose logs for http requests
 	ConfigHTTPTracing = "false"
@@ -162,7 +154,7 @@ func init() {
 }
 
 // Attempts to create a session based on the information given.
-func newS3Client(config stow.Config, region string) (client *s3.S3, endpoint string, err error) {
+func newS3Client(config stow.Config, region string) (client *s3.Client, endpoint string, err error) {
 	authType, _ := config.Config(ConfigAuthType)
 	accessKeyID, _ := config.Config(ConfigAccessKeyID)
 	secretKey, _ := config.Config(ConfigSecretKey)
@@ -195,51 +187,50 @@ func newS3Client(config stow.Config, region string) (client *s3.S3, endpoint str
 	c := &http.Client{
 		Transport: transport,
 	}
-	awsConfig := aws.NewConfig().
-		WithHTTPClient(c).
-		WithMaxRetries(3).
-		WithLogger(aws.NewDefaultLogger()).
-		WithLogLevel(aws.LogOff).
-		WithSleepDelay(time.Sleep)
 
+	awsCfgOpts := make([]func(*awsConfig.LoadOptions) error, 0)
 	if region == "" {
 		region, _ = config.Config(ConfigRegion)
 	}
 	if region != "" {
-		awsConfig.WithRegion(region)
+		awsCfgOpts = append(awsCfgOpts,	awsConfig.WithRegion(region))
 	} else {
-		awsConfig.WithRegion("us-east-1")
+		awsCfgOpts = append(awsCfgOpts,	awsConfig.WithRegion("us-east-1"))
 	}
 
 	if authType == authTypeAccessKey {
-		awsConfig.WithCredentials(credentials.NewStaticCredentials(accessKeyID, secretKey, ""))
+		awsCfgOpts = append(awsCfgOpts,	awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyID, secretKey, "")))
 	}
 
 	endpoint, ok := config.Config(ConfigEndpoint)
 	if ok {
-		awsConfig.WithEndpoint(endpoint).
-			WithS3ForcePathStyle(true)
+		resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+			return aws.Endpoint{
+				PartitionID:       "aws",
+				URL:               endpoint,
+				HostnameImmutable: true,
+		}, nil
+		})
+		
+		awsCfgOpts = append(awsCfgOpts, awsConfig.WithEndpointResolverWithOptions(resolver))
 	}
 
-	disableSSL, ok := config.Config(ConfigDisableSSL)
-	if ok && disableSSL == "true" {
-		awsConfig.WithDisableSSL(true)
-	}
+	awsCfgOpts = append(awsCfgOpts, awsConfig.WithHTTPClient(c),		awsConfig.WithRetryMaxAttempts(3))
+	awsCfg, err := awsConfig.LoadDefaultConfig(context.Background(), awsCfgOpts...)
 
-	sess, err := session.NewSession(awsConfig)
 	if err != nil {
-		return nil, "", err
-	}
-	if sess == nil {
-		return nil, "", errors.New("creating the S3 session")
+		return nil,endpoint, err
 	}
 
-	s3Client := s3.New(sess)
 
-	usev2, ok := config.Config(ConfigV2Signing)
-	if ok && usev2 == "true" {
-		setv2Handlers(s3Client)
-	}
+	s3Client := s3.NewFromConfig(awsCfg, func(options *s3.Options) {
+		_, ok := config.Config(ConfigEndpoint)
+		if ok {
+			options.UsePathStyle = true
+		}
+
+
+	})
 
 	return s3Client, endpoint, nil
 }
