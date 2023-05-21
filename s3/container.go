@@ -3,6 +3,7 @@ package s3
 import (
 	"context"
 	"fmt"
+
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
@@ -11,14 +12,13 @@ import (
 	"strings"
 	"sync"
 
-
+	"os"
 
 	"github.com/aldor007/stow"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/pkg/errors"
-	"os"
 )
 
 // Amazon S3 bucket contains a creation date and a name.
@@ -26,8 +26,8 @@ type container struct {
 	// name is needed to retrieve items.
 	name string
 	// client is responsible for performing the requests.
-	client *s3.Client
-	preSignClient  *s3.PresignClient
+	client        *s3.Client
+	preSignClient *s3.PresignClient
 	// region describes the AWS Availability Zone of the S3 Bucket.
 	region         string
 	customEndpoint string
@@ -47,7 +47,7 @@ type s3DataType struct {
 func (c *container) PreSignRequest(ctx context.Context,
 	clientMethod stow.ClientMethod,
 	id string,
-	params stow.PresignRequestParams)(url string, err error) {
+	params stow.PresignRequestParams) (url string, err error) {
 
 	if c.preSignClient == nil {
 		c.preSignClient = s3.NewPresignClient(c.client)
@@ -58,10 +58,10 @@ func (c *container) PreSignRequest(ctx context.Context,
 		req, _ = c.preSignClient.PresignGetObject(ctx, &s3.GetObjectInput{
 			Bucket: aws.String(c.name),
 			Key:    aws.String(id),
-	}, func(opts *s3.PresignOptions) {
-		opts.Expires = params.ExpiresIn
-	})
-case stow.ClientMethodPut:
+		}, func(opts *s3.PresignOptions) {
+			opts.Expires = params.ExpiresIn
+		})
+	case stow.ClientMethodPut:
 		var contentMD5 *string
 		if len(params.ContentMD5) > 0 {
 			contentMD5 = aws.String(params.ContentMD5)
@@ -77,7 +77,6 @@ case stow.ClientMethodPut:
 	default:
 		return "", fmt.Errorf("unsupported client method [%v]", clientMethod.String())
 	}
-
 
 	return req.URL, nil
 }
@@ -202,7 +201,7 @@ func (c *container) Put(name string, r io.Reader, size int64, metadata map[strin
 		etag = cleanEtag(*i.ETag)
 	}
 
-// Some fields are empty because this information isn't included in the response.
+	// Some fields are empty because this information isn't included in the response.
 	// May have to involve sending a request if we want more specific information.
 	// Keeping it simple for now.
 	// s3.Object info: https://github.com/aws/aws-sdk-go/blob/master/service/s3/api.go#L7092-L7107
@@ -252,15 +251,15 @@ func (c *container) getItem(id string) (*item, error) {
 	if err != nil {
 		var apiError smithy.APIError
 		if errors.As(err, &apiError) {
-			switch apiError.(type) {
-			case *types.NotFound:
+			switch apiError.ErrorCode() {
+			case "NotFound":
 				return nil, stow.ErrNotFound
 			default:
-				return nil, fmt.Errorf("getItem, getting the object %v. code %s, message: %s; %s", apiError,  apiError.ErrorCode(), apiError.ErrorMessage(), apiError.Error())
+				return nil, fmt.Errorf("getItem, getting the object %v. code %s, message: %s", apiError, apiError.ErrorCode(), apiError.Error())
 			}
 
 		}
-		return nil, fmt.Errorf("getItem, getting the object %v",  err)
+		return nil, fmt.Errorf("getItem, getting the object %v", err)
 	}
 
 	var etag string

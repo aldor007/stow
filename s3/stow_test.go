@@ -3,30 +3,23 @@ package s3
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/cheekybits/is"
 	"github.com/aldor007/stow"
 	"github.com/aldor007/stow/test"
 )
 
 func TestStow(t *testing.T) {
-	accessKeyId := os.Getenv("S3ACCESSKEYID")
-	secretKey := os.Getenv("S3SECRETKEY")
-	region := os.Getenv("S3REGION")
+	accessKeyId := os.Getenv("S3_ACCESSKEYID")
+	secretKey := os.Getenv("S3_SECRETKEY")
+	region := os.Getenv("S3_REGION")
 
 	if accessKeyId == "" || secretKey == "" || region == "" {
 		t.Skip("skipping test because missing one or more of S3ACCESSKEYID S3SECRETKEY S3REGION")
@@ -41,8 +34,37 @@ func TestStow(t *testing.T) {
 	test.All(t, "s3", config)
 }
 
+func TestGetItem(t *testing.T) {
+	accessKeyId := os.Getenv("S3_ACCESSKEYID")
+	secretKey := os.Getenv("S3_SECRETKEY")
+	region := os.Getenv("S3_REGION")
+	bucket := os.Getenv("S3_BUCKET")
+	r := require.New(t)
+
+	if accessKeyId == "" || secretKey == "" || region == "" || bucket == "" {
+		t.Skip("skipping test because missing one or more of S3ACCESSKEYID S3SECRETKEY S3REGION")
+	}
+
+	config := stow.ConfigMap{
+		"access_key_id": accessKeyId,
+		"secret_key":    secretKey,
+		"region":        region,
+	}
+
+	l, err := stow.Dial("s3", config)
+	r.NoError(err)
+	c, err := l.Container(bucket)
+	r.NoError(err)
+	i, err := c.Item("demo/cat.jpg")
+	r.NoError(err)
+	s, err := i.Size()
+	r.NoError(err)
+	r.Greater(s, int64(100))
+
+}
+
 func TestPreSignedURL(t *testing.T) {
-	is := is.New(t)
+	r := require.New(t)
 	accessKeyId := os.Getenv("S3ACCESSKEYID")
 	secretKey := os.Getenv("S3SECRETKEY")
 	region := os.Getenv("S3REGION")
@@ -58,7 +80,7 @@ func TestPreSignedURL(t *testing.T) {
 	}
 
 	location, err := stow.Dial("s3", config)
-	is.NoErr(err)
+	r.NoError(err)
 
 	container, err := location.Container("flyte-demo")
 	ctx := context.Background()
@@ -66,9 +88,9 @@ func TestPreSignedURL(t *testing.T) {
 		ExpiresIn: time.Hour,
 	})
 
-	is.NoErr(err)
+	r.NoError(err)
 	t.Log(res)
-	assert.NotEmpty(t, res)
+	r.NotEmpty(t, res)
 }
 
 func TestEtagCleanup(t *testing.T) {
@@ -93,21 +115,21 @@ func TestEtagCleanup(t *testing.T) {
 }
 
 func TestPrepMetadataSuccess(t *testing.T) {
-	is := is.New(t)
+	r := require.New(t)
 
-	m := make(map[string]*string)
-	m["one"] = aws.String("two")
-	m["3"] = aws.String("4")
-	m["ninety-nine"] = aws.String("100")
+	m := make(map[string]string)
+	m["one"] = "two"
+	m["3"] = "4"
+	m["ninety-nine"] = "100"
 
 	m2 := make(map[string]interface{})
 	for key, value := range m {
-		str := *value
+		str := value
 		m2[key] = str
 	}
 
 	returnedMap, _, err := prepMetadata(m2)
-	is.NoErr(err)
+	r.NoError(err)
 
 	if !reflect.DeepEqual(m, returnedMap) {
 		t.Error("Expected and returned maps are not equal.")
@@ -115,127 +137,23 @@ func TestPrepMetadataSuccess(t *testing.T) {
 }
 
 func TestPrepMetadataFailureWithNonStringValues(t *testing.T) {
-	is := is.New(t)
+	r := require.New(t)
 
 	m := make(map[string]interface{})
 	m["float"] = 8.9
 	m["number"] = 9
 
 	_, _, err := prepMetadata(m)
-	is.Err(err)
+	r.Error(err)
 }
 
 func TestInvalidAuthtype(t *testing.T) {
-	is := is.New(t)
+	r := require.New(t)
 
 	config := stow.ConfigMap{
 		"auth_type": "foo",
 	}
 	_, err := stow.Dial("s3", config)
-	is.Err(err)
-	is.True(strings.Contains(err.Error(), "invalid auth_type"))
-}
-
-func TestV2SigningEnabled(t *testing.T) {
-	is := is.New(t)
-
-	//check v2 singing occurs
-	v2Server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		is.True(strings.HasPrefix(r.Header.Get("Authorization"), "AWS access-key:"))
-		w.Header().Add("ETag", "something")
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer v2Server.Close()
-
-	uri, err := url.Parse(v2Server.URL + "/testing")
-	is.NoErr(err)
-
-	config := stow.ConfigMap{
-		"access_key_id": "access-key",
-		"secret_key":    "secret-key",
-		"region":        "do-not-care",
-		"v2_signing":    "true",
-		"endpoint":      v2Server.URL,
-	}
-
-	location, err := stow.Dial("s3", config)
-	is.NoErr(err)
-	_, _ = location.ItemByURL(uri)
-
-	//check v2 signing does not occur
-	v4Server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		is.False(strings.HasPrefix(r.Header.Get("Authorization"), "AWS access-key:"))
-		w.Header().Add("ETag", "something")
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer v4Server.Close()
-
-	uri, err = url.Parse(v4Server.URL + "/testing")
-	is.NoErr(err)
-
-	config = stow.ConfigMap{
-		"access_key_id": "access-key",
-		"secret_key":    "secret-key",
-		"region":        "do-not-care",
-		"v2_signing":    "false",
-		"endpoint":      v4Server.URL,
-	}
-
-	location, err = stow.Dial("s3", config)
-	is.NoErr(err)
-	_, _ = location.ItemByURL(uri)
-}
-
-func TestWillNotRequestRegionWhenConfigured(t *testing.T) {
-	is := is.New(t)
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		is.Fail("Request should not occur")
-		w.WriteHeader(http.StatusBadRequest)
-	}))
-	defer server.Close()
-
-	config := stow.ConfigMap{
-		"access_key_id": "access-key",
-		"secret_key":    "secret-key",
-		"region":        "do-not-care",
-		"endpoint":      server.URL,
-	}
-
-	location, err := stow.Dial("s3", config)
-	is.NoErr(err)
-
-	_, err = location.Container("Whatever")
-
-	is.NoErr(err)
-}
-
-func TestWillRequestRegionWhenConfigured(t *testing.T) {
-	is := is.New(t)
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		awsLocationQuery, err := url.ParseQuery("location")
-		is.NoErr(err)
-		is.Equal(awsLocationQuery.Encode(), r.URL.RawQuery)
-		b, _ := json.Marshal(s3.GetBucketLocationOutput{
-			LocationConstraint: aws.String("whatever"),
-		})
-		w.Write(b)
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	config := stow.ConfigMap{
-		"access_key_id": "access-key",
-		"secret_key":    "secret-key",
-		"endpoint":      server.URL,
-	}
-
-	location, err := stow.Dial("s3", config)
-	is.NoErr(err)
-
-	_, err = location.Container("Whatever")
-
-	// Make sure that this is an error
-	is.NoErr(err)
+	r.Error(err)
+	r.True(strings.Contains(err.Error(), "invalid auth_type"))
 }

@@ -114,8 +114,8 @@ func (l *location) Containers(prefix, cursor string, count int) ([]stow.Containe
 			if err != nil {
 				var apiError smithy.APIError
 				if errors.As(err, &apiError) {
-					switch apiError.(type) {
-					case *types.NotFound:
+					switch apiError.ErrorCode() {
+					case "NotFound":
 						// sometimes buckets will still show up int eh ListBuckets results after
 						// being deleted, but will 404 when determining the region. Use this as a
 						// strong signal that the bucket has been deleted.
@@ -162,7 +162,7 @@ func (l *location) Container(id string) (stow.Container, error) {
 
 	// Endpoint would indicate that we are using s3-compatible storage, which
 	// does not support s3session.GetBucketRegion().
-	if endpoint, endpointSet := l.config.Config(ConfigEndpoint); !endpointSet && endpoint == "" {
+	if endpoint, endpointSet := l.config.Config(ConfigEndpoint); !endpointSet && endpoint != "" {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		bucketLoc, _ := l.client.GetBucketLocation(ctx, &s3.GetBucketLocationInput{Bucket: aws.String(id)})
 		cancel()
