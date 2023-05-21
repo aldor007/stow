@@ -256,7 +256,7 @@ func (c *container) getItem(id string) (*item, error) {
 			case *types.NotFound:
 				return nil, stow.ErrNotFound
 			default:
-				return nil, fmt.Errorf("getItem, getting the object %s. code %s", apiError.ErrorCode(), apiError.ErrorMessage())
+				return nil, fmt.Errorf("getItem, getting the object %v. code %s, message: %s; %s", apiError,  apiError.ErrorCode(), apiError.ErrorMessage(), apiError.Error())
 			}
 
 		}
