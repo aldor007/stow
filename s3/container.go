@@ -243,11 +243,11 @@ func (c *container) Region() string {
 // May be simpler to just stick it in PUT and and do a request every time, please vouch
 // for this if so.
 func (c *container) getItem(id string) (*item, error) {
-	params := &s3.GetObjectInput{
+	params := &s3.HeadObjectInput{
 		Bucket: aws.String(c.name),
 		Key:    aws.String(id),
 	}
-	res, err := c.client.GetObject(context.TODO(), params)
+	res, err := c.client.HeadObject(context.TODO(), params)
 	if err != nil {
 		var apiError smithy.APIError
 		if errors.As(err, &apiError) {
