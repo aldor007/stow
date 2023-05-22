@@ -68,9 +68,9 @@ func (t *tracingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 		},
 		GotConn: func(info httptrace.GotConnInfo) {
 			if !info.Reused {
-				log.Printf("REQ_TRACE Method=%s GotConn: %+v NEW_CONN\n", req.Method, info)
+				log.Printf("REQ_TRACE Method=%s GotConn: %+v url: %s NEW_CONN\n", req.Method, info, req.URL.String())
 			}
-			log.Printf("REQ_TRACE Method=%s GotConn: %+v\n", req.Method, info)
+			log.Printf("REQ_TRACE Method=%s GotConn: %+v url:  \n", req.Method, info, req.URL.String())
 		},
 		ConnectStart: func(network, addr string) {
 			log.Printf("REQ_TRACE Method=%s ConnectStart\n", req.Method)
