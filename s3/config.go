@@ -2,14 +2,15 @@ package s3
 
 import (
 	"context"
-	"github.com/aws/aws-sdk-go-v2/credentials"
+	"errors"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
 	"time"
-	"errors"
+
+	"github.com/aws/aws-sdk-go-v2/credentials"
 
 	"github.com/aldor007/stow"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -49,7 +50,6 @@ const (
 	// ConfigHTTPTracing enable verbose logs for http requests
 	ConfigHTTPTracing = "false"
 )
-
 
 // transport is an http.RoundTripper that keeps track of the in-flight
 // request and implements hooks to report HTTP tracing events.
@@ -171,15 +171,15 @@ func newS3Client(config stow.Config, region string) (client *s3.Client, endpoint
 		TLSHandshakeTimeout:   10 * time.Second,
 		ResponseHeaderTimeout: 10 * time.Second,
 		ExpectContinueTimeout: 3 * time.Second,
-		MaxIdleConns:        200,
+		MaxIdleConns:          200,
 		// This number must be tuned for highly loaded servers
 		// to prevent spawning new connections every time
 		// when there is a need for have bigger number of concurrent connections.
 		// The default value of 2 is to low for such servers.
 		MaxIdleConnsPerHost: 50,
-		IdleConnTimeout: 60 * time.Second,
+		IdleConnTimeout:     60 * time.Second,
 	})
-	if _, ok := config.Config(ConfigHTTPTracing); ok  {
+	if v, ok := config.Config(ConfigHTTPTracing); ok && v == "true" {
 		transport = &tracingTransport{
 			transport: transport,
 		}
@@ -193,13 +193,13 @@ func newS3Client(config stow.Config, region string) (client *s3.Client, endpoint
 		region, _ = config.Config(ConfigRegion)
 	}
 	if region != "" {
-		awsCfgOpts = append(awsCfgOpts,	awsConfig.WithRegion(region))
+		awsCfgOpts = append(awsCfgOpts, awsConfig.WithRegion(region))
 	} else {
-		awsCfgOpts = append(awsCfgOpts,	awsConfig.WithRegion("us-east-1"))
+		awsCfgOpts = append(awsCfgOpts, awsConfig.WithRegion("us-east-1"))
 	}
 
 	if authType == authTypeAccessKey {
-		awsCfgOpts = append(awsCfgOpts,	awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyID, secretKey, "")))
+		awsCfgOpts = append(awsCfgOpts, awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyID, secretKey, "")))
 	}
 
 	endpoint, ok := config.Config(ConfigEndpoint)
@@ -209,19 +209,18 @@ func newS3Client(config stow.Config, region string) (client *s3.Client, endpoint
 				PartitionID:       "aws",
 				URL:               endpoint,
 				HostnameImmutable: true,
-		}, nil
+			}, nil
 		})
-		
+
 		awsCfgOpts = append(awsCfgOpts, awsConfig.WithEndpointResolverWithOptions(resolver))
 	}
 
-	awsCfgOpts = append(awsCfgOpts, awsConfig.WithHTTPClient(c),		awsConfig.WithRetryMaxAttempts(3))
+	awsCfgOpts = append(awsCfgOpts, awsConfig.WithHTTPClient(c), awsConfig.WithRetryMaxAttempts(3))
 	awsCfg, err := awsConfig.LoadDefaultConfig(context.Background(), awsCfgOpts...)
 
 	if err != nil {
-		return nil,endpoint, err
+		return nil, endpoint, err
 	}
-
 
 	s3Client := s3.NewFromConfig(awsCfg, func(options *s3.Options) {
 		if endpoint, ok := config.Config(ConfigEndpoint); ok && endpoint != "" {

@@ -49,6 +49,7 @@ func TestGetItem(t *testing.T) {
 		"access_key_id": accessKeyId,
 		"secret_key":    secretKey,
 		"region":        region,
+		ConfigEndpoint:  "",
 	}
 
 	l, err := stow.Dial("s3", config)
