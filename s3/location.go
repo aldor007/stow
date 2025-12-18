@@ -46,6 +46,7 @@ func (l *location) CreateContainer(containerName string) (stow.Container, error)
 		client:         l.client,
 		region:         region,
 		customEndpoint: l.customEndpoint,
+		config:         l.config,
 	}
 
 	return newContainer, nil
@@ -140,6 +141,7 @@ func (l *location) Containers(prefix, cursor string, count int) ([]stow.Containe
 			client:         client,
 			region:         bucketRegion,
 			customEndpoint: l.customEndpoint,
+			config:         l.config,
 		}
 
 		containers = append(containers, newContainer)
@@ -179,6 +181,7 @@ func (l *location) Container(id string) (stow.Container, error) {
 		client:         client,
 		region:         bucketRegion,
 		customEndpoint: l.customEndpoint,
+		config:         l.config,
 	}
 
 	if bucketRegionSet || bucketRegion != "" {

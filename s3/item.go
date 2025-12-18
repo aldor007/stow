@@ -218,6 +218,93 @@ func (i *item) Tags() (map[string]interface{}, error) {
 	return i.tags, i.tagsErr
 }
 
+// Restore initiates restoration from GLACIER or DEEP_ARCHIVE storage class
+// Implements stow.Restorable interface
+// days: number of days the restored copy should be available (1-30)
+// tier: restoration speed - "Expedited", "Standard", or "Bulk"
+func (i *item) Restore(ctx context.Context, days int, tier string) error {
+	if err := i.ensureInfo(); err != nil {
+		return err
+	}
+
+	// Parse tier
+	var restoreTier types.Tier
+	switch tier {
+	case "Expedited":
+		restoreTier = types.TierExpedited
+	case "Bulk":
+		restoreTier = types.TierBulk
+	default:
+		restoreTier = types.TierStandard
+	}
+
+	input := &s3.RestoreObjectInput{
+		Bucket: aws.String(i.container.name),
+		Key:    aws.String(i.ID()),
+		RestoreRequest: &types.RestoreRequest{
+			Days: int32(days),
+			GlacierJobParameters: &types.GlacierJobParameters{
+				Tier: restoreTier,
+			},
+		},
+	}
+
+	_, err := i.client.RestoreObject(ctx, input)
+	if err != nil {
+		// RestoreAlreadyInProgress is not an error - restore was already requested
+		if strings.Contains(err.Error(), "RestoreAlreadyInProgress") {
+			return nil
+		}
+		return errors.Wrap(err, "RestoreObject API call failed")
+	}
+
+	return nil
+}
+
+// RestoreStatus checks the x-amz-restore header to determine restoration status
+// Implements stow.Restorable interface
+// Returns:
+//   - inProgress: true if restoration is currently ongoing
+//   - expiryDate: when the restored temporary copy expires (nil if not available)
+//   - err: error if status check failed
+func (i *item) RestoreStatus(ctx context.Context) (inProgress bool, expiryDate *time.Time, err error) {
+	headInput := &s3.HeadObjectInput{
+		Bucket: aws.String(i.container.name),
+		Key:    aws.String(i.ID()),
+	}
+
+	result, err := i.client.HeadObject(ctx, headInput)
+	if err != nil {
+		return false, nil, errors.Wrap(err, "HeadObject failed")
+	}
+
+	// Check x-amz-restore header
+	if result.Restore == nil {
+		return false, nil, nil // Not being restored
+	}
+
+	// Parse x-amz-restore header format:
+	// 'ongoing-request="true"' or
+	// 'ongoing-request="false", expiry-date="Fri, 21 Dec 2012 00:00:00 GMT"'
+	restoreHeader := aws.ToString(result.Restore)
+	inProgress = strings.Contains(restoreHeader, `ongoing-request="true"`)
+
+	// Parse expiry date if restore is complete
+	if !inProgress && strings.Contains(restoreHeader, "expiry-date") {
+		if idx := strings.Index(restoreHeader, `expiry-date="`); idx != -1 {
+			dateStart := idx + 13
+			if dateEnd := strings.Index(restoreHeader[dateStart:], `"`); dateEnd != -1 {
+				dateStr := restoreHeader[dateStart : dateStart+dateEnd]
+				if parsedDate, parseErr := time.Parse(time.RFC1123, dateStr); parseErr == nil {
+					expiryDate = &parsedDate
+				}
+			}
+		}
+	}
+
+	return inProgress, expiryDate, nil
+}
+
 // OpenRange opens the item for reading starting at byte start and ending
 // at byte end.
 func (i *item) OpenRange(start, end uint64) (io.ReadCloser, error) {

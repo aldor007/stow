@@ -180,6 +180,20 @@ type Taggable interface {
 	Tags() (map[string]interface{}, error)
 }
 
+// Restorable represents an Item that supports restoration from archive storage classes (GLACIER, DEEP_ARCHIVE)
+type Restorable interface {
+	// Restore initiates restoration from archive storage class
+	// days: number of days the restored copy should be available (1-30 for GLACIER)
+	// tier: restoration speed - "Expedited" (1-5 min), "Standard" (3-5 hours), or "Bulk" (5-12 hours)
+	Restore(ctx context.Context, days int, tier string) error
+
+	// RestoreStatus returns the current restoration status
+	// inProgress: true if restoration is ongoing
+	// expiryDate: when the restored copy expires (nil if not restored)
+	// err: error if status check failed
+	RestoreStatus(ctx context.Context) (inProgress bool, expiryDate *time.Time, err error)
+}
+
 // Config represents key/value configuration.
 type Config interface {
 	// Config gets a string configuration value and a

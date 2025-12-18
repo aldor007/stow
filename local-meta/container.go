@@ -201,6 +201,11 @@ func flatdirs(path string) ([]os.FileInfo, error) {
 			return err
 		}
 
+		// Skip the root directory itself
+		if flatname == "." {
+			return nil
+		}
+
 		if info.IsDir() {
 			flatname = flatname + "/"
 		}

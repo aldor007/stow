@@ -31,6 +31,7 @@ type container struct {
 	// region describes the AWS Availability Zone of the S3 Bucket.
 	region         string
 	customEndpoint string
+	config         stow.Config // Configuration for container behavior
 	lock           sync.Mutex
 }
 
@@ -117,8 +118,12 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 
 	var containerItems []stow.Item
 
+	// Check if we should include GLACIER objects in listings
+	includeGlacier, _ := c.config.Config(ConfigIncludeGlacier)
+
 	for _, object := range response.Contents {
-		if object.StorageClass == types.ObjectStorageClassGlacier {
+		// Skip GLACIER objects unless explicitly requested
+		if object.StorageClass == types.ObjectStorageClassGlacier && includeGlacier != "true" {
 			continue
 		}
 		etag := cleanEtag(*object.ETag) // Copy etag value and remove the strings.

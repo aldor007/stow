@@ -49,6 +49,10 @@ const (
 
 	// ConfigHTTPTracing enable verbose logs for http requests
 	ConfigHTTPTracing = "false"
+
+	// ConfigIncludeGlacier controls whether GLACIER objects are included in listings
+	// Set to "true" to include GLACIER objects (default: false)
+	ConfigIncludeGlacier = "include_glacier"
 )
 
 // transport is an http.RoundTripper that keeps track of the in-flight
@@ -70,7 +74,7 @@ func (t *tracingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 			if !info.Reused {
 				log.Printf("REQ_TRACE Method=%s GotConn: %+v url: %s NEW_CONN\n", req.Method, info, req.URL.String())
 			}
-			log.Printf("REQ_TRACE Method=%s GotConn: %+v url:  \n", req.Method, info, req.URL.String())
+			log.Printf("REQ_TRACE Method=%s GotConn: %+v url: %s\n", req.Method, info, req.URL.String())
 		},
 		ConnectStart: func(network, addr string) {
 			log.Printf("REQ_TRACE Method=%s ConnectStart\n", req.Method)

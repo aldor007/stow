@@ -93,6 +93,10 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 	if err != nil {
 		return nil, "", err
 	}
+
+	// Save original cursor before it gets reassigned
+	originalCursor := cursor
+
 	if cursor != stow.CursorStart {
 		// seek to the cursor
 		ok := false
@@ -107,6 +111,7 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 			return nil, "", stow.ErrBadCursor
 		}
 	}
+
 	if len(files) > count {
 		cursor = files[count].Name()
 		files = files[:count]
@@ -114,7 +119,12 @@ func (c *container) Items(prefix, cursor string, count int) ([]stow.Item, string
 		cursor = "" // end
 	}
 
-	files = files[1:]
+	// When continuing from cursor, files[0] is the cursor item itself (already returned)
+	// Skip it to avoid duplicates
+	if originalCursor != stow.CursorStart && len(files) > 0 {
+		files = files[1:]
+	}
+
 	var items []stow.Item
 	for _, f := range files {
 		path, err := filepath.Abs(filepath.Join(c.path, f.Name()))
@@ -169,6 +179,11 @@ func flatdirs(path string) ([]os.FileInfo, error) {
 		flatname, err := filepath.Rel(path, p)
 		if err != nil {
 			return err
+		}
+
+		// Skip the root directory itself
+		if flatname == "." {
+			return nil
 		}
 
 		if info.IsDir() {
